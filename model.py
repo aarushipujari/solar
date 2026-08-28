@@ -1,13 +1,14 @@
 """
 ☀️ Aditya-L1 Spatio-Temporal Multi-Task Deep Learning Forecasting Architecture
-Combines:
+Components:
   1. 4-Channel Multi-Spectral & Topological Spatial Feature Encoder
   2. Recurrent ConvLSTM Spatio-Temporal Sequence Cell
   3. Multi-Task Heads:
      - Head A: 24-48h Binary M/X-Class Eruption Probability (Cross-Entropy)
      - Head B: 4-Class NOAA Flare Classification [Quiet/B, C-Class, M-Class, X-Class] (Cross-Entropy)
      - Head C: Continuous Log10 Peak X-Ray Flux Estimation (MSE Regression)
-  4. Authentic PyTorch Autograd Spatio-Temporal Grad-CAM for Model Explainability
+  4. Temperature Scaling Model Calibrator for Post-Hoc Probability Calibration
+  5. Authentic PyTorch Autograd Spatio-Temporal Grad-CAM for Model Attribution Explainability
 """
 
 import torch
@@ -45,15 +46,47 @@ class ConvLSTMCell(nn.Module):
         return new_h, new_c
 
 
+class ModelCalibrator(nn.Module):
+    """
+    Temperature Scaling Layer for Post-Hoc Probability Calibration (Platt Scaling).
+    Learns single temperature parameter T > 0 on validation set such that:
+      P_calibrated = softmax(Logits / T)
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.temperature = nn.Parameter(torch.ones(1) * 1.2)
+
+    def forward(self, logits):
+        temp = torch.clamp(self.temperature, min=0.1, max=10.0)
+        return logits / temp
+
+    def fit(self, val_logits, val_labels, lr=0.01, max_iter=50):
+        optimizer = torch.optim.LBFGS([self.temperature], lr=lr, max_iter=max_iter)
+        criterion = nn.CrossEntropyLoss()
+
+        def _eval():
+            optimizer.zero_grad()
+            scaled_logits = self.forward(val_logits)
+            loss = criterion(scaled_logits, val_labels)
+            loss.backward()
+            return loss
+
+        try:
+            optimizer.step(_eval)
+        except Exception:
+            pass
+
+
 class SolarFlarePredictor(nn.Module):
     """
-    Multi-Channel Spatio-Temporal Multi-Task Forecasting Network.
+    4-Channel Spatio-Temporal Multi-Task Forecasting Network.
     Input Shape: [Batch, Time (4), Channels (4), Height (256), Width (256)]
     Channels:
-      - Ch 0: Calibrated UV / Intensity Patch
-      - Ch 1: Spatial Flux Gradient (|∇I|)
-      - Ch 2: High-Frequency Laplacian Curvature (∇²I)
-      - Ch 3: Temporal Flux Evolution (ΔI_t)
+      - Ch 0: Calibrated UV / Optical Intensity
+      - Ch 1: Intensity-derived Spatial Flux Gradient (|∇I|) [Shear Complexity Proxy]
+      - Ch 2: High-Frequency Laplacian Curvature (∇²I) [Loop Complexity Proxy]
+      - Ch 3: Temporal Differential Rate (ΔI_t) [Flux Emergence Rate]
     """
 
     def __init__(self, in_channels=4, hidden_dim=32):
@@ -61,7 +94,7 @@ class SolarFlarePredictor(nn.Module):
         self.in_channels = in_channels
         self.hidden_dim = hidden_dim
 
-        # 2D Multi-Channel Spatial Feature Encoder
+        # 2D Spatial Feature Encoder
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels, 16, kernel_size=3, stride=2, padding=1),  # [B, 16, 128, 128]
             nn.BatchNorm2d(16),
@@ -71,14 +104,14 @@ class SolarFlarePredictor(nn.Module):
             nn.ReLU()
         )
 
-        # Spatio-Temporal Sequence Cell
+        # Spatio-Temporal Recurrent Sequence Cell
         self.conv_lstm = ConvLSTMCell(in_channels=32, hidden_channels=hidden_dim)
 
-        # Pooling Layer
+        # Adaptive Pooling Layer
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
 
         # Multi-Task Prediction Heads
-        # Head A: 24-48h Binary M/X-Class Flare Eruption (0: Low/No Flare, 1: M/X Flare)
+        # Head A: 24-48h Binary M/X-Class Eruption (0: Low/No Flare, 1: M/X Flare)
         self.binary_head = nn.Linear(hidden_dim, 2)
 
         # Head B: NOAA Multi-Class Flare Classification [0: Quiet/B, 1: C-Class, 2: M-Class, 3: X-Class]
@@ -87,15 +120,13 @@ class SolarFlarePredictor(nn.Module):
         # Head C: Continuous Log10 Peak X-Ray Flux (e.g. -7.5 W/m² to -3.5 W/m²)
         self.flux_regression_head = nn.Linear(hidden_dim, 1)
 
+        # Probability Calibrator
+        self.calibrator = ModelCalibrator()
+
     def forward(self, x, return_all_heads=True):
-        """
-        Forward pass.
-        If return_all_heads is True: returns dict of {'binary': ..., 'multiclass': ..., 'log_flux': ...}
-        If return_all_heads is False: returns binary logits for backwards compatibility.
-        """
         b, t, c, h, w = x.shape
 
-        # Support single-channel inputs by auto-expanding if needed
+        # Support single-channel inputs by expanding
         if c == 1 and self.in_channels == 4:
             x = x.repeat(1, 1, 4, 1, 1)
             c = 4
@@ -103,16 +134,17 @@ class SolarFlarePredictor(nn.Module):
         h_state = torch.zeros(b, self.hidden_dim, h // 4, w // 4, device=x.device)
         c_state = torch.zeros(b, self.hidden_dim, h // 4, w // 4, device=x.device)
 
-        # Recurrent sequence unrolling
+        # Recurrent sequence processing
         for i in range(t):
             frame_input = x[:, i, :, :, :]
             spatial_features = self.encoder(frame_input)
             h_state, c_state = self.conv_lstm(spatial_features, h_state, c_state)
 
-        # Bottleneck feature vector
-        features = self.pool(h_state).flatten(start_dim=1)  # [B, hidden_dim]
+        # Feature bottleneck
+        features = self.pool(h_state).flatten(start_dim=1)
 
         binary_logits = self.binary_head(features)
+        calibrated_binary_logits = self.calibrator(binary_logits)
         multiclass_logits = self.multiclass_head(features)
         log_flux_pred = self.flux_regression_head(features).squeeze(-1)
 
@@ -121,6 +153,7 @@ class SolarFlarePredictor(nn.Module):
 
         return {
             "binary_logits": binary_logits,
+            "calibrated_binary_logits": calibrated_binary_logits,
             "multiclass_logits": multiclass_logits,
             "log_flux_pred": log_flux_pred
         }
@@ -197,11 +230,18 @@ class SpatioTemporalGradCAM:
             cam_resized = cv2.resize(cam_np, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
             cams.append(cam_resized)
 
-        # Convert predictions to numpy
+        # Probabilities
+        raw_probs = torch.softmax(preds["binary_logits"], dim=1).detach().cpu().numpy()[0]
+        calibrated_probs = torch.softmax(preds["calibrated_binary_logits"], dim=1).detach().cpu().numpy()[0]
+        multi_probs = torch.softmax(preds["multiclass_logits"], dim=1).detach().cpu().numpy()[0]
+        flux_val = float(preds["log_flux_pred"].detach().cpu().numpy()[0])
+
         clean_preds = {
-            "binary_probs": torch.softmax(preds["binary_logits"], dim=1).detach().cpu().numpy()[0],
-            "multiclass_probs": torch.softmax(preds["multiclass_logits"], dim=1).detach().cpu().numpy()[0],
-            "log_flux_pred": float(preds["log_flux_pred"].detach().cpu().numpy()[0])
+            "raw_binary_probs": raw_probs,
+            "calibrated_binary_probs": calibrated_probs,
+            "multiclass_probs": multi_probs,
+            "log_flux_pred": flux_val,
+            "confidence": float(max(calibrated_probs))
         }
 
         return cams, clean_preds

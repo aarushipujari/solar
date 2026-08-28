@@ -1,0 +1,58 @@
+{
+  "model_name": "SolarFlareNet-ConvLSTM-MultiTask",
+  "version": "2.5.0",
+  "training_timestamp_utc": "2026-08-28T10:11:03.395986+00:00",
+  "input_channels": 4,
+  "sequence_length": 4,
+  "active_regions": {
+    "train": [
+      "AR-13664",
+      "AR-12673",
+      "AR-11158"
+    ],
+    "validation": [
+      "AR-12887"
+    ],
+    "test": [
+      "AR-13000",
+      "AR-13100"
+    ]
+  },
+  "calibrated_temperature": 1.1697498559951782,
+  "test_metrics": {
+    "binary_evaluation_24_48h": {
+      "true_positives": 0,
+      "false_positives": 0,
+      "true_negatives": 30,
+      "false_negatives": 0,
+      "recall_tpr": 0.0,
+      "precision": 0.0,
+      "specificity": 1.0,
+      "false_alarm_rate_fpr": 0.0,
+      "miss_rate_fnr": 0.0,
+      "f1_score": 0.0,
+      "true_skill_statistic_tss": 0.0,
+      "heidke_skill_score_hss": 0.0,
+      "roc_auc": "N/A (Single class present in test set)",
+      "pr_auc": "N/A (Single class present in test set)"
+    },
+    "multiclass_evaluation": {
+      "macro_f1": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "weighted_f1": 1.0,
+      "classes_evaluated": [
+        "Quiet/B",
+        "C-Class",
+        "M-Class",
+        "X-Class"
+      ]
+    },
+    "flux_regression_metrics": {
+      "log10_mae": 3.3298,
+      "log10_rmse": 3.3298,
+      "r2_score": "N/A"
+    },
+    "total_test_sequences": 30
+  }
+}
