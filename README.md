@@ -87,11 +87,11 @@ The model simultaneously optimizes:
 4. **Post-Hoc Probability Calibration**: Post-hoc Temperature Scaling (Platt Scaling) fitted on the validation set ensures output probabilities are statistically calibrated.
 
 ### 🛡️ Active-Region-Aware Dataset Partitioning & Honest Evaluation
-* **Zero Temporal Contamination**: Datasets are partitioned strictly by NOAA Active Regions:
-  - **Train Set**: `AR-13664`, `AR-12673`, `AR-11158` (55 sequences)
-  - **Validation Set**: `AR-12887` (17 sequences)
-  - **Held-out Test Set**: `AR-13000`, `AR-13100` (30 sequences)
-* **Standard Space-Weather Benchmarks**: Evaluated with True Skill Statistic ($\text{TSS} = \text{TPR} - \text{FPR}$), Heidke Skill Score ($\text{HSS}$), F1-Score, and ROC-AUC without fabricated fallbacks.
+* **Zero Spatial & Temporal Contamination**: Datasets are partitioned strictly by NOAA Active Regions with near-miss hard negative controls:
+  - **Train Set**: `AR-13664` (X-Class), `AR-12887` (M-Class), `AR-13450` (Near-Miss Negative), `AR-13100` (Quiet Negative) (92 sequences)
+  - **Validation Set**: `AR-13000` (C-Class Negative) (13 sequences)
+  - **Held-out Test Set**: `AR-12673` (X-Class), `AR-11158` (M-Class), `AR-13500` (Near-Miss Negative) (51 sequences)
+* **Standard Space-Weather Benchmarks**: Evaluated with True Skill Statistic ($\text{TSS} = \text{TPR} - \text{FPR}$), Heidke Skill Score ($\text{HSS}$), F1-Score, and ROC-AUC without fabricated shortcuts or data leakage.
 
 ### ⏪ Interactive Historical Event Replay
 Judges and space-ops personnel can select major historical space weather events (e.g. `AR-13664 May 2024 Superflare`, `AR-12673 Sept 2017 X9.3`, `AR-11158 Feb 2011 Valentine's Day Eruption`) and step through $T-48\text{h} \rightarrow T-36\text{h} \rightarrow T-24\text{h} \rightarrow T \rightarrow \text{Peak Flare}$ to inspect model forecasts versus verified ground-truth outcomes.

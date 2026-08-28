@@ -1,11 +1,7 @@
 """
 ☀️ Aditya-L1 Historical Solar Observation & GOES X-Ray Flare Catalog Generator
-Simulates a multi-region chronological solar dataset with zero label leakage in FITS headers.
-Generates:
-  1. Multi-temporal FITS files across distinct NOAA Active Regions (AR-13664, AR-11158, AR-12673, AR-12887, AR-13000)
-  2. Pure observational FITS headers (NO labels or future flare classes in headers!)
-  3. Decoupled GOES X-Ray Flare Event Catalog (GOES-16/18 XRS benchmark format)
-  4. Named Demo Scenarios for live command center inspection
+Simulates a multi-region chronological solar dataset with per-instance randomization,
+near-miss active regions, and zero label leakage in FITS headers.
 """
 
 import os
@@ -19,9 +15,11 @@ from config import BASE_DIR, DATA_DIR
 
 def generate_solar_physics_disk(size=512, time_step=0, region_type="X_FLARE", seed=42):
     """
-    Simulates solar disk physics (limb darkening, coronal background, magnetic active regions).
+    Simulates solar disk physics (limb darkening, coronal background, magnetic active regions)
+    with realistic per-instance randomization (spatial jitter, intensity/spread variance, granulation).
     """
-    np.random.seed(seed + time_step)
+    rng = np.random.RandomState(seed + (time_step * 37) + int(time_step ** 2))
+    
     y, x = np.ogrid[:size, :size]
     center_y, center_x = size // 2, size // 2
     radius = size * 0.42
@@ -33,42 +31,64 @@ def generate_solar_physics_disk(size=512, time_step=0, region_type="X_FLARE", se
     mu = np.sqrt(np.maximum(0.0, 1.0 - (dist / radius) ** 2))
     solar_disk = (0.3 + 0.7 * mu) * disk_mask * 1000.0
 
-    # Background noise
-    noise = np.random.normal(5.0, 1.5, (size, size))
-    image = np.where(disk_mask, solar_disk + np.random.normal(0, 10.0, (size, size)), noise)
+    # Solar background granulation & coronal noise
+    granulation = rng.normal(0.0, 12.0, (size, size))
+    corona_noise = rng.normal(5.0, 1.8, (size, size))
+    image = np.where(disk_mask, solar_disk + granulation, corona_noise)
+
+    # Per-instance randomization parameters (jitter & intensity scaling)
+    jitter_x = rng.uniform(-5.0, 5.0)
+    jitter_y = rng.uniform(-5.0, 5.0)
+    int_scale = rng.uniform(0.85, 1.15)
+    spread_scale = rng.uniform(0.88, 1.12)
 
     if region_type == "X_FLARE":
-        # Complex delta-configuration with high magnetic shear
-        ar_cy = center_y - 45 + int(time_step * 2)
-        ar_cx = center_x + 35 + int(time_step * 3)
-        intensity = 3000.0 + (time_step * 1200.0)
-        spread = 22 + (time_step * 2)
+        # Complex delta-configuration with rapid temporal flux emergence
+        ar_cy = center_y - 45 + int(time_step * 2.2) + jitter_y
+        ar_cx = center_x + 35 + int(time_step * 3.1) + jitter_x
+        intensity = (3000.0 + (time_step * 1100.0)) * int_scale
+        spread = (22 + (time_step * 1.8)) * spread_scale
 
         spot1 = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * spread ** 2))
         spot2 = np.exp(-((x - (ar_cx - 16)) ** 2 + (y - (ar_cy + 16)) ** 2) / (2 * (spread - 4) ** 2))
         image += (spot1 * intensity) + (spot2 * intensity * 0.8)
 
     elif region_type == "M_FLARE":
-        # Moderate active region with intermediate shear
-        ar_cy = center_y + 35 + int(time_step * 1)
-        ar_cx = center_x - 45 + int(time_step * 2)
-        intensity = 1800.0 + (time_step * 450.0)
-        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * 16 ** 2))
+        # Moderate active region with moderate shear and emergence
+        ar_cy = center_y + 35 + int(time_step * 1.2) + jitter_y
+        ar_cx = center_x - 45 + int(time_step * 1.9) + jitter_x
+        intensity = (1800.0 + (time_step * 420.0)) * int_scale
+        spread = 16.0 * spread_scale
+        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * spread ** 2))
         image += spot * intensity
+
+    elif region_type == "NEAR_MISS_COMPLEX":
+        # Visually complex multi-polar plage (multiple sunspots, high spatial shear proxy)
+        # but temporally stable / quiescent (NO explosive emergence, NO M/X flare)
+        ar_cy = center_y - 30 + int(time_step * 0.3) + jitter_y
+        ar_cx = center_x + 40 + int(time_step * 0.4) + jitter_x
+        base_int = 2100.0 * int_scale
+        
+        s1 = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * (15.0 * spread_scale) ** 2))
+        s2 = np.exp(-((x - (ar_cx + 18)) ** 2 + (y - (ar_cy - 14)) ** 2) / (2 * (12.0 * spread_scale) ** 2))
+        s3 = np.exp(-((x - (ar_cx - 16)) ** 2 + (y - (ar_cy + 16)) ** 2) / (2 * (11.0 * spread_scale) ** 2))
+        image += (s1 * base_int) + (s2 * base_int * 0.75) + (s3 * base_int * 0.65)
 
     elif region_type == "C_FLARE":
         # Mild active plage
-        ar_cy = center_y - 20 + int(time_step * 1)
-        ar_cx = center_x - 30 + int(time_step * 1)
-        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * 14 ** 2))
-        image += spot * 900.0
+        ar_cy = center_y - 20 + int(time_step * 0.8) + jitter_y
+        ar_cx = center_x - 30 + int(time_step * 0.8) + jitter_x
+        spread = 14.0 * spread_scale
+        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * spread ** 2))
+        image += spot * (900.0 * int_scale)
 
     else:  # QUIET_SUN
         # Stable dipole or quiet unipolar sunspot
-        ar_cy = center_y + 60
-        ar_cx = center_x - 70
-        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * 10 ** 2))
-        image += spot * 400.0
+        ar_cy = center_y + 60 + jitter_y
+        ar_cx = center_x - 70 + jitter_x
+        spread = 10.0 * spread_scale
+        spot = np.exp(-((x - ar_cx) ** 2 + (y - ar_cy) ** 2) / (2 * spread ** 2))
+        image += spot * (400.0 * int_scale)
 
     return np.clip(image, 0.0, None).astype(np.float32)
 
@@ -91,27 +111,29 @@ def save_pure_fits_observation(filepath, data, obs_time_str, noaa_ar):
 
 
 def build_historical_dataset():
-    print("Building multi-region chronological FITS dataset & independent GOES flare catalog...")
+    print("Building multi-region randomized solar FITS dataset & independent GOES flare catalog...")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     scenarios_dir = BASE_DIR / "scenarios"
     scenarios_dir.mkdir(parents=True, exist_ok=True)
 
     base_time = datetime(2026, 8, 1, 0, 0, 0, tzinfo=timezone.utc)
 
-    # Active Region tracking list
+    # Active Region tracking list (including Near-Miss Hard Negative Regions)
     active_regions_profile = [
-        {"ar": "AR-13664", "type": "X_FLARE", "flare_class": "X2.8", "peak_flux": 2.8e-4, "flare_offset_hours": 32, "frames": 24, "seed": 100},
-        {"ar": "AR-12673", "type": "X_FLARE", "flare_class": "X1.4", "peak_flux": 1.4e-4, "flare_offset_hours": 28, "frames": 20, "seed": 200},
-        {"ar": "AR-11158", "type": "M_FLARE", "flare_class": "M5.4", "peak_flux": 5.4e-5, "flare_offset_hours": 36, "frames": 20, "seed": 300},
-        {"ar": "AR-12887", "type": "M_FLARE", "flare_class": "M2.1", "peak_flux": 2.1e-5, "flare_offset_hours": 40, "frames": 20, "seed": 400},
-        {"ar": "AR-13000", "type": "C_FLARE", "flare_class": "C4.5", "peak_flux": 4.5e-6, "flare_offset_hours": 30, "frames": 16, "seed": 500},
+        {"ar": "AR-13664", "type": "X_FLARE", "flare_class": "X2.8", "peak_flux": 2.8e-4, "flare_offset_hours": 42, "frames": 24, "seed": 100},
+        {"ar": "AR-12673", "type": "X_FLARE", "flare_class": "X1.4", "peak_flux": 1.4e-4, "flare_offset_hours": 40, "frames": 20, "seed": 200},
+        {"ar": "AR-11158", "type": "M_FLARE", "flare_class": "M5.4", "peak_flux": 5.4e-5, "flare_offset_hours": 42, "frames": 20, "seed": 300},
+        {"ar": "AR-12887", "type": "M_FLARE", "flare_class": "M2.1", "peak_flux": 2.1e-5, "flare_offset_hours": 38, "frames": 20, "seed": 400},
+        {"ar": "AR-13000", "type": "C_FLARE", "flare_class": "C4.5", "peak_flux": 4.5e-6, "flare_offset_hours": 36, "frames": 16, "seed": 500},
+        {"ar": "AR-13450", "type": "NEAR_MISS_COMPLEX", "flare_class": "Quiet", "peak_flux": 3.2e-7, "flare_offset_hours": 0, "frames": 20, "seed": 550},
+        {"ar": "AR-13500", "type": "NEAR_MISS_COMPLEX", "flare_class": "Quiet", "peak_flux": 2.8e-7, "flare_offset_hours": 0, "frames": 20, "seed": 580},
         {"ar": "AR-13100", "type": "QUIET_SUN", "flare_class": "Quiet", "peak_flux": 1.2e-7, "flare_offset_hours": 0, "frames": 20, "seed": 600},
     ]
 
     goes_events = []
     current_time = base_time
 
-    # 1. Populate main dataset with 120 chronological FITS frames
+    # 1. Populate main dataset with chronological FITS frames
     for profile in active_regions_profile:
         ar_name = profile["ar"]
         r_type = profile["type"]
@@ -158,37 +180,31 @@ def build_historical_dataset():
         "AR3670_Quiet_Sun": {"type": "QUIET_SUN", "ar": "AR-13100", "class": "Quiet", "flux": 1.2e-7, "offset": 0}
     }
 
-    for sc_name, sc_data in scenarios_config.items():
-        dest = scenarios_dir / sc_name
-        dest.mkdir(parents=True, exist_ok=True)
-        sc_base_time = datetime(2026, 8, 28, 0, 0, 0, tzinfo=timezone.utc)
+    for scn_name, scn_data in scenarios_config.items():
+        scn_path = scenarios_dir / scn_name
+        scn_path.mkdir(parents=True, exist_ok=True)
+        scn_start = datetime(2026, 8, 20, 0, 0, 0, tzinfo=timezone.utc)
+
         for step in range(4):
-            f_time = sc_base_time + timedelta(hours=step * 3)
-            t_str = f_time.strftime("%Y-%m-%dT%H:%M:%S.000")
-            fname = f"{sc_name}_T{step:02d}.fits"
-            fpath = dest / fname
-            data = generate_solar_physics_disk(time_step=step, region_type=sc_data["type"], seed=777)
-            save_pure_fits_observation(fpath, data, t_str, sc_data["ar"])
+            f_time = scn_start + timedelta(hours=step * 3)
+            time_str = f_time.strftime("%Y-%m-%dT%H:%M:%S.000")
+            fname = f"{scn_name}_step_{step}.fits"
+            f_out = scn_path / fname
 
-        if sc_data["class"] != "Quiet":
-            fl_start = sc_base_time + timedelta(hours=sc_data["offset"])
-            goes_events.append({
-                "flare_id": f"GOES_{sc_name}",
-                "active_region": sc_data["ar"],
-                "start_time": fl_start.strftime("%Y-%m-%dT%H:%M:%S.000"),
-                "peak_time": (fl_start + timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%S.000"),
-                "end_time": (fl_start + timedelta(minutes=40)).strftime("%Y-%m-%dT%H:%M:%S.000"),
-                "flare_class": sc_data["class"],
-                "peak_flux_wm2": sc_data["flux"],
-                "integrated_flux_jm2": sc_data["flux"] * 1500.0
-            })
+            d_data = generate_solar_physics_disk(time_step=step, region_type=scn_data["type"], seed=999)
+            save_pure_fits_observation(f_out, d_data, time_str, scn_data["ar"])
 
-    # 3. Save Clean GOES Flare Catalog
+    # 3. Save Independent GOES Flare Catalog
     catalog_df = pd.DataFrame(goes_events)
     catalog_path = BASE_DIR / "goes_flare_catalog.csv"
     catalog_df.to_csv(catalog_path, index=False)
-    print(f"Generated {len(list(DATA_DIR.glob('*.fits')))} total FITS observation frames.")
-    print(f"Created independent GOES catalog at {catalog_path} with {len(catalog_df)} verified flare events.")
+    
+    catalogs_sub_dir = BASE_DIR / "catalogs"
+    catalogs_sub_dir.mkdir(parents=True, exist_ok=True)
+    catalog_df.to_csv(catalogs_sub_dir / "goes_flare_catalog.csv", index=False)
+
+    print(f"Generated FITS files in {DATA_DIR}")
+    print(f"Saved {len(catalog_df)} independent GOES flare events to {catalog_path}")
 
 
 if __name__ == "__main__":

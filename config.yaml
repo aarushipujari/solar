@@ -39,10 +39,10 @@ training:
     flux_loss: 0.5
   
   # Active-Region-Aware Partitioning (Strictly isolated active regions)
-  # Balanced so Train, Val, and Test all contain diverse flare/quiet profiles
-  train_active_regions: ["AR-13664", "AR-12887", "AR-13100"]
+  # Includes true positive eruptive regions AND near-miss hard negative regions
+  train_active_regions: ["AR-13664", "AR-12887", "AR-13450", "AR-13100"]
   val_active_regions: ["AR-13000"]
-  test_active_regions: ["AR-12673", "AR-11158"]
+  test_active_regions: ["AR-12673", "AR-11158", "AR-13500"]
 
 alert_thresholds:
   low_risk: 0.30

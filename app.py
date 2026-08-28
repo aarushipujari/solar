@@ -730,15 +730,15 @@ with tab5_telemetry:
                 meta = json.load(f)
             te_bin = meta.get("test_metrics", {}).get("binary_evaluation_24_48h", {})
         else:
-            te_bin = {"true_skill_statistic_tss": 0.8333, "heidke_skill_score_hss": 0.8917, "f1_score": 0.9091, "roc_auc": 1.0}
+            te_bin = {"true_skill_statistic_tss": 0.0747, "heidke_skill_score_hss": 0.0911, "f1_score": 0.1818, "roc_auc": 0.5747}
 
         sc1, sc2 = st.columns(2)
         with sc1:
-            st.metric("True Skill Statistic (TSS)", str(te_bin.get("true_skill_statistic_tss", "0.8333")), help="TSS = Recall - False Alarm Rate.")
-            st.metric("F1-Score (M/X Flares)", str(te_bin.get("f1_score", "0.9091")))
+            st.metric("True Skill Statistic (TSS)", str(te_bin.get("true_skill_statistic_tss", "0.0747")), help="TSS = Recall - False Alarm Rate.")
+            st.metric("F1-Score (M/X Flares)", str(te_bin.get("f1_score", "0.1818")))
         with sc2:
-            st.metric("Heidke Skill Score (HSS)", str(te_bin.get("heidke_skill_score_hss", "0.8917")), help="Accuracy relative to random chance.")
-            st.metric("ROC-AUC Score", str(te_bin.get("roc_auc", "1.0")))
+            st.metric("Heidke Skill Score (HSS)", str(te_bin.get("heidke_skill_score_hss", "0.0911")), help="Accuracy relative to random chance.")
+            st.metric("ROC-AUC Score", str(te_bin.get("roc_auc", "0.5747")))
 
     with col_rep:
         # Automated ISSDC Bulletin
