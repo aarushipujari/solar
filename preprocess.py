@@ -136,6 +136,16 @@ def compute_magnetic_flux_gradient(gray_image):
     return grad_norm, contours
 
 
+def compute_high_frequency_curvature(gray_image):
+    """
+    Computes spatial Laplacian second derivatives (∇²I) representing
+    high-frequency curvature and magnetic loop complexity.
+    """
+    lap = cv2.Laplacian(gray_image, cv2.CV_32F, ksize=3)
+    denom = lap.max() - lap.min() + 1e-8
+    return (lap - lap.min()) / denom
+
+
 def compute_optical_flux_and_shear_proxies(patch):
     """
     Computes honest optical and topological image proxies from the active region patch:
