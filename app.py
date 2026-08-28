@@ -279,6 +279,20 @@ st.markdown(f"""
         </div>
     </div>
 </div>
+
+<div class="space-card" style="border-left: 4px solid #00e5ff; background: rgba(13, 22, 45, 0.85); margin-bottom: 15px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-weight: 700; color: #00e5ff; font-size: 0.92rem;">🎯 SIH Mission Objective & Data Architecture</span>
+        <span class="badge-cyan">Transforming Reactive Mitigation into Proactive Defence</span>
+    </div>
+    <p style="margin: 0 0 6px 0; font-size: 0.85rem; line-height: 1.5; color: #cdd9e5;">
+        To protect critical satellite communication, global navigation networks (<b>NavIC / GPS</b>), and power infrastructure (<b>PGCIL</b>) from destructive geomagnetic storms and CMEs, our project leverages 4-channel spatio-temporal deep learning (<b>CNN + ConvLSTM</b>) trained on a physics-informed synthetic dataset built in the <b>Aditya-L1 SUIT FITS format</b>, modeled on historically significant NOAA active regions (<b>AR-13664, AR-12673, AR-11158</b>) — with a real PRADAN ingestion pipeline built and ready pending ISSDC data access approval, providing predictive forecasts <b>24 to 48 hours prior to Earth impact</b>.
+    </p>
+    <div style="display: flex; gap: 16px; font-size: 0.78rem; color: #8ba2be; flex-wrap: wrap;">
+        <div>⚠️ <b>The Threat:</b> Geomagnetic storms & CMEs disrupt GPS/NavIC synchronization and induce destructive GIC currents in 765kV transformers.</div>
+        <div>🚀 <b>The AI Solution:</b> Spatio-temporal 4-channel forecasting with authentic autograd Grad-CAM model attribution.</div>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 

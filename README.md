@@ -14,7 +14,7 @@
 ## 🎯 1. Problem Framing & Mission Objective
 
 * **The Threat**: Major solar flare eruptions (M-Class and X-Class) and Coronal Mass Ejections (CMEs) inject billions of tons of magnetized high-energy plasma into the heliosphere. When Earth-directed, they trigger severe geomagnetic storms ($G1-G5$), complete High Frequency ($HF$) radio blackouts ($R1-R5$), solar radiation hazards ($S1-S5$), and induce destructive Geomagnetically Induced Currents ($GIC$) inside extra-high-voltage power transformers ($765\text{ kV}$).
-* **The Goal**: Develop a spatio-temporal deep learning forecasting system utilizing multi-spectral solar observations (specifically structured around the **ISRO Aditya-L1 SUIT payload format**) to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
+* **The Goal**: Develop a spatio-temporal deep learning forecasting system (CNN + ConvLSTM) trained on a physics-informed synthetic dataset built in the **Aditya-L1 SUIT FITS format**, modeled on historically significant NOAA active regions (**AR-13664, AR-12673, AR-11158**) — with a real PRADAN ingestion pipeline built and ready pending ISSDC data access approval — to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
 * **Impact Protection**: Safeguard India's strategic space and terrestrial infrastructure:
   1. **ISRO NavIC (IRNSS)** satellite constellation clock synchronization & ionospheric delay mitigation.
   2. **GSAT / INSAT** geostationary telecommunications transponder surge protection.
@@ -70,7 +70,7 @@ graph TD
 * **Pure Observational Headers**: FITS observation files contain *only* past astronomical metadata (`DATE-OBS`, `NOAA_AR`, `WAVELNTH`, `EXPTIME`). Future outcomes (`FLARE_LABEL`, `GOES_CLASS`, `PEAK_FLUX`) are strictly quarantined from input headers.
 * **Transparent Data Modes**: The UI and APIs visibly display whether the system is operating in:
   - `[DATA MODE: REAL BENCHMARK]` (Real NOAA SWPC satellite telemetry & SDO active region benchmarks)
-  - `[DATA MODE: DEMO / SIMULATED DATA]` (Simulated multi-temporal demonstration scenarios)
+  - `[DATA MODE: DEMO / SIMULATED DATA]` (Physics-informed synthetic dataset formatted in the Aditya-L1 SUIT FITS standard, modeled on historical NOAA active regions)
 
 ### 🧠 4-Channel Multi-Spectral & Topological Input Tensor ($[B, T, 4, H, W]$)
 Rather than single-channel grayscale images, the convolutional encoder ingests a 4-channel representation:
