@@ -1,8 +1,9 @@
+streamlit
 torch
 torchvision
 numpy
+pandas
 astropy
-opencv-python
-sunpy
-streamlit
+opencv-python-headless
 plotly
+

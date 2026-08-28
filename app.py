@@ -339,8 +339,15 @@ if not active_folder.exists():
 available_fits = sorted(list(active_folder.glob("*.fits")))
 
 if len(available_fits) < SEQ_LENGTH:
-    # Try parent or fallback
-    available_fits = sorted(list(DATA_DIR.glob("*.fits")))
+    # Auto-generate datasets if running in fresh cloud environment
+    try:
+        from generate_sample_data import build_all_datasets_and_catalog
+        build_all_datasets_and_catalog()
+        available_fits = sorted(list(active_folder.glob("*.fits")))
+        if len(available_fits) < SEQ_LENGTH:
+            available_fits = sorted(list(DATA_DIR.glob("*.fits")))
+    except Exception:
+        pass
 
 if len(available_fits) < SEQ_LENGTH:
     st.error(f"Insufficient FITS files ({len(available_fits)} found, minimum {SEQ_LENGTH} required). Please run `python generate_sample_data.py` to generate sample data.")
