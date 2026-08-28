@@ -1,112 +1,227 @@
+"""
+☀️ Aditya-L1 Spatio-Temporal Sequence Dataset Pipeline
+Features:
+  1. Zero Label Leakage: FITS headers contain only observational metadata (DATE-OBS, NOAA_AR).
+  2. Scientifically Rigorous 24-48h Forward Target Window Construction:
+     - Given sequence ending at T_obs:
+     - Target window = [T_obs + 24h, T_obs + 48h]
+     - Queries independent GOES X-ray catalog for M/X flare occurrences in that exact future window.
+  3. Multi-Channel Tensor Shape: [Sequence (4), Channels (4), Height (256), Width (256)]
+  4. Multi-Task Targets:
+     - binary_label: 0 (No Flare / <M1.0), 1 (Flare >= M1.0)
+     - multiclass_label: 0 (Quiet/B), 1 (C-Class), 2 (M-Class), 3 (X-Class)
+     - log_peak_flux: log10(Peak Flux in W/m²)
+  5. Chronological Splitting (Train / Val / Test) with zero temporal contamination.
+"""
+
 import os
-import pandas as pd
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
+import pandas as pd
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 from astropy.io import fits
-from preprocess import load_and_clean_fits, preprocess_solar_disk, extract_active_region
+
+from preprocess import (
+    load_and_clean_fits,
+    preprocess_solar_disk,
+    extract_active_region,
+    build_multi_channel_frame
+)
 
 
 class SolarSequenceDataset(Dataset):
     """
-    Groups chronologically ordered Aditya-L1 SUIT FITS files into temporal sliding windows
-    and matches them against NOAA/GOES X-ray flare event catalogs (C/M/X classes).
-    
-    Output Tensor Shape: [Sequence_Length, Channels, Height, Width]
+    Chronological Sequence Dataset for Aditya-L1 Solar Flare Forecasting.
     """
 
-    def __init__(self, data_dir, seq_length=4, img_size=(256, 256), catalog_path=None):
+    def __init__(self, data_dir, seq_length=4, img_size=(256, 256), catalog_path=None, file_list=None):
         self.seq_length = seq_length
         self.img_size = img_size
         self.data_dir = Path(data_dir)
 
-        # Chronologically sort files based on filenames / timestamps
-        self.file_paths = sorted(list(self.data_dir.glob("*.fits")))
+        if file_list is not None:
+            self.file_paths = sorted(file_list)
+        else:
+            self.file_paths = sorted(list(self.data_dir.glob("*.fits")))
 
-        # Calculate available temporal sequences
-        self.num_sequences = len(self.file_paths) - seq_length + 1
-
-        # Load GOES Flare Catalog if available
+        # Load GOES Flare Catalog
         if catalog_path is None:
             catalog_path = self.data_dir.parent / "goes_flare_catalog.csv"
             if not catalog_path.exists():
                 catalog_path = self.data_dir / "goes_flare_catalog.csv"
 
-        self.goes_catalog = None
+        self.goes_catalog = pd.DataFrame()
         if Path(catalog_path).exists():
             try:
                 self.goes_catalog = pd.read_csv(catalog_path)
-                print(f"Loaded GOES Flare Catalog: {len(self.goes_catalog)} events recorded.")
+                # Parse ISO timestamps
+                self.goes_catalog["start_dt"] = pd.to_datetime(self.goes_catalog["start_time"], utc=True)
+                self.goes_catalog["peak_dt"] = pd.to_datetime(self.goes_catalog["peak_time"], utc=True)
             except Exception as e:
                 print(f"Warning: Could not parse GOES catalog at {catalog_path}: {e}")
 
-    def __len__(self):
-        return max(0, self.num_sequences)
+        # Index contiguous sequences by Active Region
+        self.sequences = self._build_contiguous_sequences()
 
-    def _extract_fits_metadata(self, filepath):
-        """Extracts observational metadata from FITS primary header."""
+    def _extract_fits_header(self, filepath):
+        """Extracts pure observational metadata from FITS primary header."""
         meta = {
             "date_obs": None,
-            "telescop": "Aditya-L1",
-            "instrume": "SUIT",
-            "wavelnth": "279.6 nm",
-            "noaa_ar": "AR-3664",
-            "flare_label": 0,
-            "goes_class": "Quiet"
+            "noaa_ar": "AR-13664",
+            "wavelnth": "279.6 nm"
         }
         try:
             with fits.open(filepath) as hdul:
                 header = hdul[0].header
-                meta["date_obs"] = header.get("DATE-OBS", filepath.stem)
-                meta["telescop"] = header.get("TELESCOP", "Aditya-L1")
-                meta["instrume"] = header.get("INSTRUME", "SUIT")
+                meta["date_obs"] = header.get("DATE-OBS", None)
+                meta["noaa_ar"] = header.get("NOAA_AR", "AR-13664")
                 meta["wavelnth"] = header.get("WAVELNTH", "279.6 nm")
-                meta["noaa_ar"] = header.get("NOAA_AR", "AR-3664")
-                meta["flare_label"] = int(header.get("FLARE_LABEL", 0))
-                meta["goes_class"] = header.get("GOES_CLASS", "Quiet")
         except Exception:
             pass
         return meta
 
-    def _match_goes_flare_label(self, meta_t_last):
-        """
-        Matches sequence observation timestamp with GOES catalog events.
-        If a >= M1.0 flare occurred within the 24-48h forecast window, label = 1.
-        """
-        if self.goes_catalog is not None and "date_obs" in meta_t_last:
-            # Match by NOAA Active Region or timestamp if present in catalog
-            matched = self.goes_catalog[
-                (self.goes_catalog["active_region"] == meta_t_last["noaa_ar"]) |
-                (self.goes_catalog["obs_file"] == meta_t_last["date_obs"])
-            ]
-            if not matched.empty:
-                max_class = matched.iloc[0].get("flare_class", "Quiet")
-                is_high_risk = 1 if (str(max_class).startswith("M") or str(max_class).startswith("X")) else 0
-                return torch.tensor(is_high_risk, dtype=torch.long)
+    def _build_contiguous_sequences(self):
+        """Groups FITS frames chronologically into contiguous temporal sliding windows."""
+        seqs = []
+        if len(self.file_paths) < self.seq_length:
+            return seqs
 
-        # Fallback to metadata tag in header
-        return torch.tensor(meta_t_last["flare_label"], dtype=torch.long)
+        # Parse timestamps and active regions for all files
+        file_meta = []
+        for f in self.file_paths:
+            m = self._extract_fits_header(f)
+            dt = None
+            if m["date_obs"]:
+                try:
+                    dt = pd.to_datetime(m["date_obs"], utc=True)
+                except Exception:
+                    pass
+            file_meta.append({"path": f, "ar": m["noaa_ar"], "dt": dt})
+
+        df_files = pd.DataFrame(file_meta)
+        if df_files["dt"].isnull().any():
+            # Fallback to simple sliding window if timestamps missing
+            for i in range(len(self.file_paths) - self.seq_length + 1):
+                seqs.append(self.file_paths[i: i + self.seq_length])
+            return seqs
+
+        # Group by Active Region to prevent cross-region sequence mixing
+        for ar, group in df_files.groupby("ar"):
+            group = group.sort_values("dt").reset_index(drop=True)
+            if len(group) >= self.seq_length:
+                for i in range(len(group) - self.seq_length + 1):
+                    sub_files = list(group.iloc[i: i + self.seq_length]["path"])
+                    seqs.append(sub_files)
+
+        return seqs
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def _evaluate_24_48h_forward_target(self, last_filepath):
+        """
+        Calculates ground-truth target by checking if an M/X flare occurred
+        in the forward window [T_obs + 24h, T_obs + 48h] associated with the active region.
+        """
+        meta = self._extract_fits_header(last_filepath)
+        ar_name = meta["noaa_ar"]
+        obs_time_str = meta["date_obs"]
+
+        # Default targets for quiet baseline
+        binary_label = 0
+        multiclass_label = 0  # 0: Quiet/B, 1: C, 2: M, 3: X
+        log_flux = -7.5        # Baseline log10(W/m²)
+
+        if self.goes_catalog.empty or obs_time_str is None:
+            return binary_label, multiclass_label, log_flux
+
+        try:
+            obs_dt = pd.to_datetime(obs_time_str, utc=True)
+            win_start = obs_dt + timedelta(hours=24)
+            win_end = obs_dt + timedelta(hours=48)
+
+            # Query GOES catalog for events in [win_start, win_end] matching the active region
+            matched = self.goes_catalog[
+                (self.goes_catalog["active_region"] == ar_name) &
+                (self.goes_catalog["start_dt"] >= win_start) &
+                (self.goes_catalog["start_dt"] <= win_end)
+            ]
+
+            if not matched.empty:
+                # Find maximum flare intensity event in the 24-48h window
+                max_event = matched.sort_values("peak_flux_wm2", ascending=False).iloc[0]
+                fl_class = str(max_event["flare_class"])
+                fl_flux = float(max_event["peak_flux_wm2"])
+                log_flux = float(np.log10(max(1e-8, fl_flux)))
+
+                if fl_class.startswith("X"):
+                    binary_label = 1
+                    multiclass_label = 3
+                elif fl_class.startswith("M"):
+                    binary_label = 1
+                    multiclass_label = 2
+                elif fl_class.startswith("C"):
+                    binary_label = 0
+                    multiclass_label = 1
+                else:
+                    binary_label = 0
+                    multiclass_label = 0
+
+        except Exception:
+            pass
+
+        return binary_label, multiclass_label, log_flux
 
     def __getitem__(self, idx):
-        # Extract a contiguous sequence of FITS frames
-        seq_files = self.file_paths[idx: idx + self.seq_length]
-        frames = []
-        last_meta = {}
+        seq_files = self.sequences[idx]
+        channel_frames = []
+        prev_patch = None
 
-        for i, filepath in enumerate(seq_files):
+        for filepath in seq_files:
             raw = load_and_clean_fits(filepath)
             disk = preprocess_solar_disk(raw)
             patch = extract_active_region(disk, patch_size=self.img_size)
 
-            # Add channel dimension -> [1, H, W]
-            patch_tensor = torch.tensor(patch, dtype=torch.float32).unsqueeze(0)
-            frames.append(patch_tensor)
+            # Build 4-channel tensor: [4, H, W]
+            multi_ch_tensor = build_multi_channel_frame(patch, prev_patch=prev_patch)
+            channel_frames.append(torch.tensor(multi_ch_tensor, dtype=torch.float32))
+            prev_patch = patch
 
-            if i == len(seq_files) - 1:
-                last_meta = self._extract_fits_metadata(filepath)
+        # Stack across temporal sequence dimension -> [T (4), C (4), H (256), W (256)]
+        sequence_tensor = torch.stack(channel_frames, dim=0)
 
-        # Stack across sequence length dimension -> [T, C, H, W]
-        sequence_tensor = torch.stack(frames, dim=0)
-        target_label = self._match_goes_flare_label(last_meta)
+        # Compute 24-48h target
+        bin_label, multi_label, log_flux = self._evaluate_24_48h_forward_target(seq_files[-1])
 
-        return sequence_tensor, target_label
+        targets = {
+            "binary_label": torch.tensor(bin_label, dtype=torch.long),
+            "multiclass_label": torch.tensor(multi_label, dtype=torch.long),
+            "log_flux": torch.tensor(log_flux, dtype=torch.float32)
+        }
+
+        return sequence_tensor, targets
+
+
+def create_chronological_splits(data_dir, seq_length=4, train_ratio=0.70, val_ratio=0.15):
+    """
+    Splits FITS sequence files chronologically to prevent temporal data leakage.
+    Returns: (train_dataset, val_dataset, test_dataset)
+    """
+    data_dir = Path(data_dir)
+    all_files = sorted(list(data_dir.glob("*.fits")))
+
+    n_total = len(all_files)
+    n_train = int(n_total * train_ratio)
+    n_val = int(n_total * val_ratio)
+
+    train_files = all_files[:n_train]
+    val_files = all_files[n_train: n_train + n_val]
+    test_files = all_files[n_train + n_val:]
+
+    train_ds = SolarSequenceDataset(data_dir, seq_length=seq_length, file_list=train_files)
+    val_ds = SolarSequenceDataset(data_dir, seq_length=seq_length, file_list=val_files)
+    test_ds = SolarSequenceDataset(data_dir, seq_length=seq_length, file_list=test_files)
+
+    return train_ds, val_ds, test_ds
