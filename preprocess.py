@@ -46,3 +46,84 @@ def extract_active_region(image, bbox=None, patch_size=(256, 256)):
         crop = image[y1:y2, x1:x2]
 
     return cv2.resize(crop, patch_size)
+
+
+def apply_spectral_colormap(gray_image, colormap_name="SUIT_UV_279"):
+    """
+    Renders false-color multi-spectral representations commonly used in solar physics:
+      - SUIT_UV_279: High-contrast cyan/ultraviolet (Aditya-L1 SUIT Mg II k filter)
+      - AIA_171_GOLD: SDO/AIA 171 Å Quiet Corona & Loop Golden palette
+      - AIA_193_BRONZE: SDO/AIA 193 Å Active Region Bronze/Rust palette
+      - MAGNETOGRAM: SOHO/MDI line-of-sight dipole contrast (Blue/Red magnetic polarity)
+      - PLASMA_INFERNO: High-energy thermal gradient colormap
+    """
+    # Ensure uint8 in [0, 255]
+    img_uint8 = np.clip(gray_image * 255.0, 0, 255).astype(np.uint8)
+
+    if colormap_name == "SUIT_UV_279":
+        # Custom Aditya-L1 UV LUT: deep purple-blue to cyan-white
+        lut = np.zeros((256, 1, 3), dtype=np.uint8)
+        for i in range(256):
+            r = int(np.clip((i - 100) * 1.6, 0, 255))
+            g = int(np.clip(i * 1.1, 0, 255))
+            b = int(np.clip(120 + i * 0.6, 0, 255))
+            lut[i, 0] = [b, g, r]  # BGR order for OpenCV
+        colored = cv2.LUT(cv2.cvtColor(img_uint8, cv2.COLOR_GRAY2BGR), lut)
+        return cv2.cvtColor(colored, cv2.COLOR_BGR2RGB)
+
+    elif colormap_name == "AIA_171_GOLD":
+        return cv2.applyColorMap(img_uint8, cv2.COLORMAP_AUTUMN)
+
+    elif colormap_name == "AIA_193_BRONZE":
+        return cv2.applyColorMap(img_uint8, cv2.COLORMAP_COPPER)
+
+    elif colormap_name == "MAGNETOGRAM":
+        return cv2.applyColorMap(img_uint8, cv2.COLORMAP_TWILIGHT_SHIFTED)
+
+    elif colormap_name == "PLASMA_INFERNO":
+        return cv2.applyColorMap(img_uint8, cv2.COLORMAP_INFERNO)
+
+    else:
+        # Default grayscale to RGB
+        return cv2.cvtColor(img_uint8, cv2.COLOR_GRAY2RGB)
+
+
+def compute_magnetic_flux_gradient(gray_image):
+    """
+    Computes Sobel spatial flux gradients (nabla I) representing magnetic field shear lines.
+    Returns: gradient magnitude map and active neutral line contours.
+    """
+    grad_x = cv2.Sobel(gray_image, cv2.CV_32F, 1, 0, ksize=3)
+    grad_y = cv2.Sobel(gray_image, cv2.CV_32F, 0, 1, ksize=3)
+    grad_mag = cv2.magnitude(grad_x, grad_y)
+
+    # Normalize to [0, 1]
+    denom = grad_mag.max() - grad_mag.min() + 1e-8
+    grad_norm = (grad_mag - grad_mag.min()) / denom
+
+    # Extract contours of strong flux gradient (> 60th percentile)
+    threshold_val = np.percentile(grad_norm, 75)
+    binary_mask = (grad_norm > threshold_val).astype(np.uint8)
+    contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    return grad_norm, contours
+
+
+def compute_solar_physical_metrics(patch):
+    """
+    Computes quantitative physics indicators from the active region patch:
+      - Total Unsigned Magnetic Flux proxy (Phi)
+      - Peak Flux Gradient (Shear Intensity)
+      - Magnetic Neutral Line Complexity Index
+    """
+    phi_proxy = float(np.sum(patch) / 1000.0)
+    grad_norm, contours = compute_magnetic_flux_gradient(patch)
+    max_gradient = float(np.max(grad_norm))
+    shear_complexity = float(len(contours) * 1.5 + (np.mean(grad_norm) * 100.0))
+
+    return {
+        "unsigned_flux_proxy": phi_proxy,
+        "max_flux_gradient": max_gradient,
+        "shear_complexity_index": min(100.0, shear_complexity),
+        "total_contour_loops": len(contours)
+    }

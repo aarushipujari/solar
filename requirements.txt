@@ -1,0 +1,8 @@
+torch
+torchvision
+numpy
+astropy
+opencv-python
+sunpy
+streamlit
+plotly

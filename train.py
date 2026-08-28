@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from config import DATA_DIR, BATCH_SIZE, SEQ_LENGTH, NUM_EPOCHS, LEARNING_RATE
+from config import BASE_DIR, DATA_DIR, BATCH_SIZE, SEQ_LENGTH, NUM_EPOCHS, LEARNING_RATE
 from dataset import SolarSequenceDataset
 from model import SolarFlarePredictor
 
@@ -13,7 +13,8 @@ def run_training():
     # Load dataset
     dataset = SolarSequenceDataset(data_dir=DATA_DIR, seq_length=SEQ_LENGTH)
     if len(dataset) == 0:
-        print("Not enough contiguous FITS frames found to build sequence batches.")
+        print(f"Not enough contiguous FITS frames found in '{DATA_DIR}' to build sequence batches.")
+        print("Run 'python generate_sample_data.py' to create sample FITS data, or set your data path in config.py.")
         return
 
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
@@ -41,6 +42,11 @@ def run_training():
             total_loss += loss.item()
 
         print(f"Epoch [{epoch + 1}/{NUM_EPOCHS}] - Loss: {total_loss / len(dataloader):.4f}")
+
+    # Save trained model weights
+    save_path = BASE_DIR / "solar_flare_model.pth"
+    torch.save(model.state_dict(), save_path)
+    print(f"Model saved successfully to {save_path}")
 
 
 if __name__ == "__main__":

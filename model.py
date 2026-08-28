@@ -67,3 +67,84 @@ class SolarFlarePredictor(nn.Module):
             h_state, c_state = self.conv_lstm(spatial_features, h_state, c_state)
 
         return self.classifier(h_state)
+
+
+class SpatioTemporalGradCAM:
+    """
+    Computes genuine Gradient-weighted Class Activation Mapping (Grad-CAM)
+    across the temporal sequence of the CNN-ConvLSTM model using PyTorch autograd hooks.
+    
+    Formula:
+      \\alpha_k^{(t)} = \\frac{1}{Z} \\sum_{i} \\sum_{j} \\frac{\\partial y^c}{\\partial A_{k,i,j}^{(t)}}
+      L_{\\text{Grad-CAM}}^{(t)} = \\text{ReLU}\\left(\\sum_{k} \\alpha_k^{(t)} A_{k}^{(t)}\\right)
+    """
+
+    def __init__(self, model, target_layer=None):
+        self.model = model
+        # Target the final Conv2d layer in spatial encoder: model.encoder[3]
+        self.target_layer = target_layer if target_layer is not None else model.encoder[3]
+        self.activations = []
+        self.gradients = []
+        self._register_hooks()
+
+    def _register_hooks(self):
+        def forward_hook(module, inp, out):
+            self.activations.append(out)
+
+        def backward_hook(module, grad_in, grad_out):
+            # Prepend because backward runs in reverse order
+            self.gradients.insert(0, grad_out[0])
+
+        self.target_layer.register_forward_hook(forward_hook)
+        self.target_layer.register_full_backward_hook(backward_hook)
+
+    def generate(self, seq_tensor, target_class=1):
+        """
+        Generates frame-by-frame Grad-CAM heatmaps for the given input sequence tensor.
+        seq_tensor: [1, T, C, H, W]
+        Returns: (list of 2D numpy arrays of shape [H, W], logits numpy array)
+        """
+        import cv2
+        import numpy as np
+
+        self.activations = []
+        self.gradients = []
+        self.model.eval()
+
+        # Ensure gradient tracking
+        input_var = seq_tensor.clone().detach().requires_grad_(True)
+        logits = self.model(input_var)
+
+        self.model.zero_grad()
+        score = logits[0, target_class]
+        score.backward()
+
+        cams = []
+        t = seq_tensor.shape[1]
+        h_orig, w_orig = seq_tensor.shape[3], seq_tensor.shape[4]
+
+        for i in range(min(t, len(self.activations), len(self.gradients))):
+            act = self.activations[i]   # [1, 32, H', W']
+            grad = self.gradients[i]    # [1, 32, H', W']
+
+            # Global average pooling of gradients
+            weights = torch.mean(grad, dim=(2, 3), keepdim=True)
+
+            # Weighted linear combination
+            cam = torch.sum(weights * act, dim=1, keepdim=True)
+            cam = torch.relu(cam)
+
+            cam_np = cam.squeeze().detach().cpu().numpy()
+
+            # Normalize to [0, 1]
+            denom = cam_np.max() - cam_np.min()
+            if denom > 1e-8:
+                cam_np = (cam_np - cam_np.min()) / denom
+            else:
+                cam_np = np.zeros_like(cam_np)
+
+            # Resize to input patch resolution
+            cam_resized = cv2.resize(cam_np, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
+            cams.append(cam_resized)
+
+        return cams, logits.detach().cpu().numpy()[0]
