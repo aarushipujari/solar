@@ -76,9 +76,9 @@ NUM_EPOCHS = int(CONFIG.get("training", {}).get("num_epochs", 20))
 RANDOM_SEED = int(CONFIG.get("system", {}).get("random_seed", 42))
 
 # Active-Region-Aware Splits
-TRAIN_ACTIVE_REGIONS = CONFIG.get("training", {}).get("train_active_regions", ["AR-13664", "AR-12673", "AR-11158"])
-VAL_ACTIVE_REGIONS = CONFIG.get("training", {}).get("val_active_regions", ["AR-12887"])
-TEST_ACTIVE_REGIONS = CONFIG.get("training", {}).get("test_active_regions", ["AR-13000", "AR-13100"])
+TRAIN_ACTIVE_REGIONS = CONFIG.get("training", {}).get("train_active_regions", ["AR-13664", "AR-12887", "AR-13100"])
+VAL_ACTIVE_REGIONS = CONFIG.get("training", {}).get("val_active_regions", ["AR-13000"])
+TEST_ACTIVE_REGIONS = CONFIG.get("training", {}).get("test_active_regions", ["AR-12673", "AR-11158"])
 
 # Alert Risk Thresholds
 ALERT_THRESHOLDS = CONFIG.get("alert_thresholds", {

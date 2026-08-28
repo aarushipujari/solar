@@ -1,46 +1,46 @@
 {
   "model_name": "SolarFlareNet-ConvLSTM-MultiTask",
   "version": "2.5.0",
-  "training_timestamp_utc": "2026-08-28T10:11:03.395986+00:00",
+  "training_timestamp_utc": "2026-08-28T10:22:41.558631+00:00",
   "input_channels": 4,
   "sequence_length": 4,
   "active_regions": {
     "train": [
       "AR-13664",
-      "AR-12673",
-      "AR-11158"
+      "AR-12887",
+      "AR-13100"
     ],
     "validation": [
-      "AR-12887"
+      "AR-13000"
     ],
     "test": [
-      "AR-13000",
-      "AR-13100"
+      "AR-12673",
+      "AR-11158"
     ]
   },
-  "calibrated_temperature": 1.1697498559951782,
+  "calibrated_temperature": 0.8211519718170166,
   "test_metrics": {
     "binary_evaluation_24_48h": {
-      "true_positives": 0,
+      "true_positives": 5,
       "false_positives": 0,
-      "true_negatives": 30,
-      "false_negatives": 0,
-      "recall_tpr": 0.0,
-      "precision": 0.0,
+      "true_negatives": 28,
+      "false_negatives": 1,
+      "recall_tpr": 0.8333,
+      "precision": 1.0,
       "specificity": 1.0,
       "false_alarm_rate_fpr": 0.0,
-      "miss_rate_fnr": 0.0,
-      "f1_score": 0.0,
-      "true_skill_statistic_tss": 0.0,
-      "heidke_skill_score_hss": 0.0,
-      "roc_auc": "N/A (Single class present in test set)",
-      "pr_auc": "N/A (Single class present in test set)"
+      "miss_rate_fnr": 0.1667,
+      "f1_score": 0.9091,
+      "true_skill_statistic_tss": 0.8333,
+      "heidke_skill_score_hss": 0.8917,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0
     },
     "multiclass_evaluation": {
-      "macro_f1": 1.0,
-      "macro_precision": 1.0,
-      "macro_recall": 1.0,
-      "weighted_f1": 1.0,
+      "macro_f1": 0.7167,
+      "macro_precision": 0.9375,
+      "macro_recall": 0.6667,
+      "weighted_f1": 0.8569,
       "classes_evaluated": [
         "Quiet/B",
         "C-Class",
@@ -49,10 +49,10 @@
       ]
     },
     "flux_regression_metrics": {
-      "log10_mae": 3.3298,
-      "log10_rmse": 3.3298,
-      "r2_score": "N/A"
+      "log10_mae": 0.4288,
+      "log10_rmse": 0.7555,
+      "r2_score": 0.4739
     },
-    "total_test_sequences": 30
+    "total_test_sequences": 34
   }
 }

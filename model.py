@@ -146,7 +146,8 @@ class SolarFlarePredictor(nn.Module):
         binary_logits = self.binary_head(features)
         calibrated_binary_logits = self.calibrator(binary_logits)
         multiclass_logits = self.multiclass_head(features)
-        log_flux_pred = self.flux_regression_head(features).squeeze(-1)
+        # Bounded between -8.0 (Quiet baseline 10^-8 W/m²) and -3.0 (X10 Superflare 10^-3 W/m²)
+        log_flux_pred = -8.0 + 5.0 * torch.sigmoid(self.flux_regression_head(features).squeeze(-1))
 
         if not return_all_heads:
             return binary_logits

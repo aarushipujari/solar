@@ -30,18 +30,19 @@ forecasting:
 
 training:
   batch_size: 4
-  learning_rate: 0.0001
-  num_epochs: 20
+  learning_rate: 0.0003
+  num_epochs: 25
   weight_decay: 0.0001
   loss_weights:
     binary_loss: 1.0
     multiclass_loss: 0.5
-    flux_loss: 0.2
+    flux_loss: 0.5
   
-  # Active-Region-Aware Partitioning
-  train_active_regions: ["AR-13664", "AR-12673", "AR-11158"]
-  val_active_regions: ["AR-12887"]
-  test_active_regions: ["AR-13000", "AR-13100"]
+  # Active-Region-Aware Partitioning (Strictly isolated active regions)
+  # Balanced so Train, Val, and Test all contain diverse flare/quiet profiles
+  train_active_regions: ["AR-13664", "AR-12887", "AR-13100"]
+  val_active_regions: ["AR-13000"]
+  test_active_regions: ["AR-12673", "AR-11158"]
 
 alert_thresholds:
   low_risk: 0.30
