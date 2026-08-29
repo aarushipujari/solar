@@ -36,12 +36,82 @@ from preprocess import (
 from build_labels import build_forward_target_labels, extract_observation_metadata
 
 
+_PATCH_CACHE = {}
+_SEQ_CACHE = {}
+
+
+def get_cached_patch(fpath):
+    fpath_str = str(fpath)
+    if fpath_str in _PATCH_CACHE:
+        return _PATCH_CACHE[fpath_str]
+    if Path(fpath).exists():
+        raw = load_and_clean_fits(fpath)
+        disk = preprocess_solar_disk(raw)
+        patch = extract_active_region(disk, patch_size=IMG_SIZE)
+    else:
+        patch = np.zeros(IMG_SIZE, dtype=np.float32)
+    _PATCH_CACHE[fpath_str] = patch
+    return patch
+
+
+CACHE_FILE = PROCESSED_DATA_DIR / "cached_sequences.pt"
+
+
+def prewarm_global_sequence_cache(df=None):
+    """Pre-extracts and caches all sequence tensors in memory and on disk for ultra-fast training."""
+    global _SEQ_CACHE
+    if len(_SEQ_CACHE) > 0:
+        return
+
+    if CACHE_FILE.exists():
+        try:
+            _SEQ_CACHE = torch.load(CACHE_FILE, map_location="cpu", weights_only=False)
+            return
+        except Exception:
+            _SEQ_CACHE = {}
+
+    if df is None:
+        labels_csv = CATALOGS_DIR / "sequence_labels.csv"
+        if not labels_csv.exists():
+            labels_csv = BASE_DIR / "sequence_labels.csv"
+        if labels_csv.exists():
+            df = pd.read_csv(labels_csv)
+
+    if df is not None:
+        for idx in range(len(df)):
+            row = df.iloc[idx]
+            frame_paths = [
+                Path(row.get("frame_0", row.get("filepath", ""))),
+                Path(row.get("frame_1", "")),
+                Path(row.get("frame_2", "")),
+                Path(row.get("frame_3", ""))
+            ]
+            if not frame_paths[1].exists() and frame_paths[0].exists():
+                frame_paths = [frame_paths[0]] * SEQ_LENGTH
+            seq_key = tuple(str(p) for p in frame_paths)
+            if seq_key not in _SEQ_CACHE:
+                channel_frames = []
+                prev_patch = None
+                for fpath in frame_paths:
+                    patch = get_cached_patch(fpath)
+                    mch = build_multi_channel_frame(patch, prev_patch=prev_patch)
+                    channel_frames.append(torch.tensor(mch, dtype=torch.float32))
+                    prev_patch = patch
+                _SEQ_CACHE[seq_key] = torch.stack(channel_frames, dim=0)
+
+        PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            torch.save(_SEQ_CACHE, CACHE_FILE)
+        except Exception:
+            pass
+
+
 class SolarSequenceDataset(Dataset):
     """
     Spatio-Temporal Sequence Dataset for Solar Flare Forecasting.
     """
 
-    def __init__(self, split_df=None, data_dir=None, is_demo_mode=False):
+    def __init__(self, split_df=None, data_dir=None, is_demo_mode=False, auto_prewarm=True):
         self.is_demo_mode = is_demo_mode
         self.data_dir = Path(data_dir) if data_dir else DATA_DIR
         
@@ -57,6 +127,9 @@ class SolarSequenceDataset(Dataset):
                 self.df = pd.read_csv(labels_csv)
             else:
                 self.df = build_forward_target_labels(data_dir=self.data_dir)
+
+        if auto_prewarm:
+            prewarm_global_sequence_cache(self.df)
 
     def __len__(self):
         return len(self.df)
@@ -76,23 +149,22 @@ class SolarSequenceDataset(Dataset):
         if not frame_paths[1].exists() and frame_paths[0].exists():
             frame_paths = [frame_paths[0]] * SEQ_LENGTH
 
-        channel_frames = []
-        prev_patch = None
+        seq_key = tuple(str(p) for p in frame_paths)
+        if seq_key in _SEQ_CACHE:
+            seq_tensor = _SEQ_CACHE[seq_key]
+        else:
+            channel_frames = []
+            prev_patch = None
 
-        for fpath in frame_paths:
-            if Path(fpath).exists():
-                raw = load_and_clean_fits(fpath)
-                disk = preprocess_solar_disk(raw)
-                patch = extract_active_region(disk, patch_size=IMG_SIZE)
-            else:
-                patch = np.zeros(IMG_SIZE, dtype=np.float32)
+            for fpath in frame_paths:
+                patch = get_cached_patch(fpath)
+                mch = build_multi_channel_frame(patch, prev_patch=prev_patch)
+                channel_frames.append(torch.tensor(mch, dtype=torch.float32))
+                prev_patch = patch
 
-            mch = build_multi_channel_frame(patch, prev_patch=prev_patch)
-            channel_frames.append(torch.tensor(mch, dtype=torch.float32))
-            prev_patch = patch
-
-        # Tensor shape: [T (4), C (4), H (256), W (256)]
-        seq_tensor = torch.stack(channel_frames, dim=0)
+            # Tensor shape: [T (4), C (4), H (256), W (256)]
+            seq_tensor = torch.stack(channel_frames, dim=0)
+            _SEQ_CACHE[seq_key] = seq_tensor
 
         targets = {
             "binary_label": torch.tensor(int(row.get("binary_target_MX_24_48h", 0)), dtype=torch.long),

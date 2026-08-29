@@ -3,7 +3,7 @@
 
 system:
   project_name: "Aditya-L1 Solar Flare & Space Weather Early Warning System"
-  version: "2.5.0"
+  version: "2.6.0"
   random_seed: 42
   device: "cpu"  # "cuda" if GPU is available
 
@@ -38,11 +38,18 @@ training:
     multiclass_loss: 0.5
     flux_loss: 0.5
   
-  # Active-Region-Aware Partitioning (Strictly isolated active regions)
-  # Includes true positive eruptive regions AND near-miss hard negative regions
-  train_active_regions: ["AR-13664", "AR-12887", "AR-13450", "AR-13100"]
-  val_active_regions: ["AR-13000"]
-  test_active_regions: ["AR-12673", "AR-11158", "AR-13500"]
+  # Complete pool of NOAA Active Regions for Leave-One-Region-Out CV
+  all_active_regions: [
+    "AR-13664", "AR-12673", "AR-11158", "AR-12887",
+    "AR-13000", "AR-13200", "AR-13300",
+    "AR-13450", "AR-13500", "AR-13700",
+    "AR-13100", "AR-13600"
+  ]
+
+  # Default split for single-run deployment training
+  train_active_regions: ["AR-13664", "AR-12887", "AR-13200", "AR-13450", "AR-13100", "AR-13600"]
+  val_active_regions: ["AR-13000", "AR-13300"]
+  test_active_regions: ["AR-12673", "AR-11158", "AR-13500", "AR-13700"]
 
 alert_thresholds:
   low_risk: 0.30

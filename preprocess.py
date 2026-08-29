@@ -18,7 +18,7 @@ from astropy.io import fits
 
 def load_and_clean_fits(fits_path):
     """Loads a FITS file and removes sky background noise/NaN values."""
-    with fits.open(fits_path) as hdul:
+    with fits.open(fits_path, memmap=True) as hdul:
         data = hdul[0].data.astype(np.float32) if hdul[0].data is not None else hdul[1].data.astype(np.float32)
 
     data = np.nan_to_num(data, nan=0.0)

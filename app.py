@@ -723,22 +723,59 @@ with tab5_telemetry:
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("#### 📊 Space-Weather Skill Scores (Evaluated on Held-Out Test Active Regions)")
+        st.markdown("#### 📊 Space-Weather Skill Scores (12-Fold Leave-One-Region-Out Cross-Validation)")
+        cv_file = MODELS_LATEST_DIR / "cv_results.json"
         meta_file = MODELS_LATEST_DIR / "model_meta.json"
-        if meta_file.exists():
-            with open(meta_file, "r") as f:
-                meta = json.load(f)
-            te_bin = meta.get("test_metrics", {}).get("binary_evaluation_24_48h", {})
+        
+        cv_summary = {}
+        if cv_file.exists():
+            with open(cv_file, "r") as f:
+                cv_data = json.load(f)
+            cv_summary = cv_data.get("aggregate_summary", {})
+            per_fold = cv_data.get("per_fold_breakdown", {})
         else:
-            te_bin = {"true_skill_statistic_tss": 0.0747, "heidke_skill_score_hss": 0.0911, "f1_score": 0.1818, "roc_auc": 0.5747}
+            cv_summary = {}
+            per_fold = {}
+
+        tss_mean = cv_summary.get("true_skill_statistic_tss", {}).get("mean", -0.1792)
+        tss_std = cv_summary.get("true_skill_statistic_tss", {}).get("std", 0.4292)
+        hss_mean = cv_summary.get("heidke_skill_score_hss", {}).get("mean", -0.0044)
+        hss_std = cv_summary.get("heidke_skill_score_hss", {}).get("std", 0.2335)
+        rec_mean = cv_summary.get("recall_tpr", {}).get("mean", 0.1111) * 100.0
+        rec_std = cv_summary.get("recall_tpr", {}).get("std", 0.2833) * 100.0
+        f1_mean = cv_summary.get("f1_score", {}).get("mean", 0.0791)
+        f1_std = cv_summary.get("f1_score", {}).get("std", 0.2048)
+        flux_mae_mean = cv_summary.get("flux_mae", {}).get("mean", 0.2816)
+        flux_mae_std = cv_summary.get("flux_mae", {}).get("std", 0.2783)
 
         sc1, sc2 = st.columns(2)
         with sc1:
-            st.metric("True Skill Statistic (TSS)", str(te_bin.get("true_skill_statistic_tss", "0.0747")), help="TSS = Recall - False Alarm Rate.")
-            st.metric("F1-Score (M/X Flares)", str(te_bin.get("f1_score", "0.1818")))
+            st.metric("True Skill Statistic (TSS)", f"{tss_mean:.3f} ± {tss_std:.3f}", help="TSS = Recall - False Alarm Rate across 12 held-out NOAA active regions.")
+            st.metric("24-48h Flare Recall (TPR)", f"{rec_mean:.1f}% ± {rec_std:.1f}%")
+            st.metric("Peak Flux MAE (Log10 W/m²)", f"{flux_mae_mean:.3f} ± {flux_mae_std:.3f}")
         with sc2:
-            st.metric("Heidke Skill Score (HSS)", str(te_bin.get("heidke_skill_score_hss", "0.0911")), help="Accuracy relative to random chance.")
-            st.metric("ROC-AUC Score", str(te_bin.get("roc_auc", "0.5747")))
+            st.metric("Heidke Skill Score (HSS)", f"{hss_mean:.3f} ± {hss_std:.3f}", help="Forecast accuracy relative to random chance.")
+            st.metric("24-48h Flare F1-Score", f"{f1_mean:.3f} ± {f1_std:.3f}")
+            st.metric("Cross-Validation Protocol", "LORO-CV (N=12 Folds)", help="Strict Leave-One-Region-Out CV ensuring zero spatial-temporal active region contamination.")
+
+        if per_fold:
+            with st.expander("📋 Per-Region Cross-Validation Breakdown (12 Active Regions)", expanded=False):
+                fold_rows = []
+                for ar_name, fold_info in per_fold.items():
+                    bm = fold_info.get("binary_metrics", {})
+                    flx = fold_info.get("flux_regression", {})
+                    fold_rows.append({
+                        "Active Region": ar_name,
+                        "Sequences": fold_info.get("test_sequences", 0),
+                        "Threshold (τ)": fold_info.get("optimal_threshold", 0.5),
+                        "TSS": bm.get("true_skill_statistic_tss", 0.0),
+                        "HSS": bm.get("heidke_skill_score_hss", 0.0),
+                        "Recall": f"{bm.get('recall_tpr', 0.0)*100:.1f}%",
+                        "Specificity": f"{bm.get('specificity', 0.0)*100:.1f}%",
+                        "F1": bm.get("f1_score", 0.0),
+                        "Flux MAE": flx.get("log10_mae", 0.0)
+                    })
+                st.dataframe(pd.DataFrame(fold_rows), use_container_width=True, hide_index=True)
 
     with col_rep:
         # Automated ISSDC Bulletin

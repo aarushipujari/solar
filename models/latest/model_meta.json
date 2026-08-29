@@ -1,48 +1,68 @@
 {
   "model_name": "SolarFlareNet-ConvLSTM-MultiTask",
-  "version": "2.5.0",
-  "training_timestamp_utc": "2026-08-28T10:36:30.462054+00:00",
+  "version": "2.6.0",
+  "training_timestamp_utc": "2026-08-29T13:20:40.823800+00:00",
   "input_channels": 4,
   "sequence_length": 4,
   "active_regions": {
     "train": [
       "AR-13664",
       "AR-12887",
+      "AR-13200",
       "AR-13450",
-      "AR-13100"
+      "AR-13100",
+      "AR-13600"
     ],
     "validation": [
-      "AR-13000"
+      "AR-13000",
+      "AR-13300"
     ],
     "test": [
       "AR-12673",
       "AR-11158",
-      "AR-13500"
+      "AR-13500",
+      "AR-13700"
+    ],
+    "all_active_regions": [
+      "AR-13664",
+      "AR-12673",
+      "AR-11158",
+      "AR-12887",
+      "AR-13000",
+      "AR-13200",
+      "AR-13300",
+      "AR-13450",
+      "AR-13500",
+      "AR-13700",
+      "AR-13100",
+      "AR-13600"
     ]
   },
-  "calibrated_temperature": 0.6783538460731506,
-  "test_metrics": {
+  "optimal_threshold": 0.5,
+  "calibrated_temperature": 0.2541995942592621,
+  "single_split_test_metrics": {
     "binary_evaluation_24_48h": {
-      "true_positives": 1,
-      "false_positives": 3,
-      "true_negatives": 41,
-      "false_negatives": 6,
-      "recall_tpr": 0.1429,
-      "precision": 0.25,
-      "specificity": 0.9318,
-      "false_alarm_rate_fpr": 0.0682,
-      "miss_rate_fnr": 0.8571,
-      "f1_score": 0.1818,
-      "true_skill_statistic_tss": 0.0747,
-      "heidke_skill_score_hss": 0.0911,
-      "roc_auc": 0.5747,
-      "pr_auc": 0.1969
+      "true_positives": 3,
+      "false_positives": 25,
+      "true_negatives": 56,
+      "false_negatives": 4,
+      "recall_tpr": 0.4286,
+      "precision": 0.1071,
+      "specificity": 0.6914,
+      "false_alarm_rate_fpr": 0.3086,
+      "miss_rate_fnr": 0.5714,
+      "f1_score": 0.1714,
+      "true_skill_statistic_tss": 0.1199,
+      "heidke_skill_score_hss": 0.0506,
+      "decision_threshold_used": 0.5,
+      "roc_auc": 0.6049,
+      "pr_auc": 0.1195
     },
     "multiclass_evaluation": {
-      "macro_f1": 0.3956,
-      "macro_precision": 0.3741,
-      "macro_recall": 0.4217,
-      "weighted_f1": 0.7942,
+      "macro_f1": 0.3064,
+      "macro_precision": 0.3206,
+      "macro_recall": 0.3663,
+      "weighted_f1": 0.769,
       "classes_evaluated": [
         "Quiet/B",
         "C-Class",
@@ -51,10 +71,10 @@
       ]
     },
     "flux_regression_metrics": {
-      "log10_mae": 0.6665,
-      "log10_rmse": 1.1011,
-      "r2_score": -0.2025
+      "log10_mae": 0.3821,
+      "log10_rmse": 0.8223,
+      "r2_score": -0.0849
     },
-    "total_test_sequences": 51
+    "total_test_sequences": 88
   }
 }

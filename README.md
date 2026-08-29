@@ -86,12 +86,19 @@ The model simultaneously optimizes:
 3. **Flux Regression Head**: Continuous estimation of peak X-ray flux ($\log_{10} \Phi_{\text{peak}} \text{ in W/m}^2$).
 4. **Post-Hoc Probability Calibration**: Post-hoc Temperature Scaling (Platt Scaling) fitted on the validation set ensures output probabilities are statistically calibrated.
 
-### 🛡️ Active-Region-Aware Dataset Partitioning & Honest Evaluation
-* **Zero Spatial & Temporal Contamination**: Datasets are partitioned strictly by NOAA Active Regions with near-miss hard negative controls:
-  - **Train Set**: `AR-13664` (X-Class), `AR-12887` (M-Class), `AR-13450` (Near-Miss Negative), `AR-13100` (Quiet Negative) (92 sequences)
-  - **Validation Set**: `AR-13000` (C-Class Negative) (13 sequences)
-  - **Held-out Test Set**: `AR-12673` (X-Class), `AR-11158` (M-Class), `AR-13500` (Near-Miss Negative) (51 sequences)
-* **Standard Space-Weather Benchmarks**: Evaluated with True Skill Statistic ($\text{TSS} = \text{TPR} - \text{FPR}$), Heidke Skill Score ($\text{HSS}$), F1-Score, and ROC-AUC without fabricated shortcuts or data leakage.
+### 🛡️ Leave-One-Region-Out Cross-Validation (LORO-CV) & 12 Active Regions
+* **Zero Spatial & Temporal Contamination**: The evaluation protocol uses a rigorous 12-fold **Leave-One-Region-Out Cross-Validation (LORO-CV)** across 12 distinct NOAA active regions:
+  - **Positive Eruption Regions**: `AR-13664` (X-Class Superflare), `AR-12673` (X9.3), `AR-11158` (X2.2 Valentine's Day), `AR-12887` (X1.0), `AR-13200` (M-Class), `AR-13600` (M-Class).
+  - **Negative & Near-Miss Controls**: `AR-13000` (C-Class Negative), `AR-13100` (Quiet Negative), `AR-13300` (C-Class Negative), `AR-13450` (Near-Miss Negative), `AR-13500` (Near-Miss Negative), `AR-13700` (Near-Miss Negative).
+* **Standard Space-Weather Benchmarks**: Evaluated with True Skill Statistic ($\text{TSS} = \text{TPR} - \text{FPR}$), Heidke Skill Score ($\text{HSS}$), F1-Score, and Peak Flux MAE across all 12 folds:
+  - **$\text{TSS}$**: $-0.179 \pm 0.429$ (12-Fold LORO-CV across all NOAA ARs)
+  - **$\text{HSS}$**: $-0.004 \pm 0.234$
+  - **Peak Flux MAE**: $0.282 \pm 0.278 \, \log_{10}(\text{W/m}^2)$
+  - **Single Fixed Held-Out Split Test TSS**: $+0.120$, Test ROC-AUC: $0.605$
+* **Dynamic Class Weighting & Calibrated Decision Thresholds**:
+  - Training employs dynamic inverse class frequency loss weighting for both binary and NOAA 4-class heads.
+  - Multi-task objective: $\mathcal{L} = 1.0 \cdot \mathcal{L}_{\text{bin}} + 0.5 \cdot \mathcal{L}_{\text{multi}} + 0.5 \cdot \mathcal{L}_{\text{flux}}$ using Smooth L1 loss ($\beta=0.5$).
+  - Decision threshold $\tau$ is tuned per fold to maximize TSS, and post-hoc temperature scaling ensures calibrated output probabilities.
 
 ### ⏪ Interactive Historical Event Replay
 Judges and space-ops personnel can select major historical space weather events (e.g. `AR-13664 May 2024 Superflare`, `AR-12673 Sept 2017 X9.3`, `AR-11158 Feb 2011 Valentine's Day Eruption`) and step through $T-48\text{h} \rightarrow T-36\text{h} \rightarrow T-24\text{h} \rightarrow T \rightarrow \text{Peak Flare}$ to inspect model forecasts versus verified ground-truth outcomes.

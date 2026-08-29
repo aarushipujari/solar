@@ -75,10 +75,16 @@ LEARNING_RATE = float(CONFIG.get("training", {}).get("learning_rate", 1e-4))
 NUM_EPOCHS = int(CONFIG.get("training", {}).get("num_epochs", 20))
 RANDOM_SEED = int(CONFIG.get("system", {}).get("random_seed", 42))
 
-# Active-Region-Aware Splits (with Near-Miss Hard Negative Regions)
-TRAIN_ACTIVE_REGIONS = CONFIG.get("training", {}).get("train_active_regions", ["AR-13664", "AR-12887", "AR-13450", "AR-13100"])
-VAL_ACTIVE_REGIONS = CONFIG.get("training", {}).get("val_active_regions", ["AR-13000"])
-TEST_ACTIVE_REGIONS = CONFIG.get("training", {}).get("test_active_regions", ["AR-12673", "AR-11158", "AR-13500"])
+# Active-Region-Aware Splits & Full Pool for Leave-One-Region-Out CV
+ALL_ACTIVE_REGIONS = CONFIG.get("training", {}).get("all_active_regions", [
+    "AR-13664", "AR-12673", "AR-11158", "AR-12887",
+    "AR-13000", "AR-13200", "AR-13300",
+    "AR-13450", "AR-13500", "AR-13700",
+    "AR-13100", "AR-13600"
+])
+TRAIN_ACTIVE_REGIONS = CONFIG.get("training", {}).get("train_active_regions", ["AR-13664", "AR-12887", "AR-13200", "AR-13450", "AR-13100", "AR-13600"])
+VAL_ACTIVE_REGIONS = CONFIG.get("training", {}).get("val_active_regions", ["AR-13000", "AR-13300"])
+TEST_ACTIVE_REGIONS = CONFIG.get("training", {}).get("test_active_regions", ["AR-12673", "AR-11158", "AR-13500", "AR-13700"])
 
 # Alert Risk Thresholds
 ALERT_THRESHOLDS = CONFIG.get("alert_thresholds", {

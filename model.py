@@ -61,21 +61,15 @@ class ModelCalibrator(nn.Module):
         temp = torch.clamp(self.temperature, min=0.1, max=10.0)
         return logits / temp
 
-    def fit(self, val_logits, val_labels, lr=0.01, max_iter=50):
-        optimizer = torch.optim.LBFGS([self.temperature], lr=lr, max_iter=max_iter)
+    def fit(self, val_logits, val_labels, lr=0.05, max_iter=20):
+        optimizer = torch.optim.Adam([self.temperature], lr=lr)
         criterion = nn.CrossEntropyLoss()
-
-        def _eval():
+        for _ in range(max_iter):
             optimizer.zero_grad()
             scaled_logits = self.forward(val_logits)
             loss = criterion(scaled_logits, val_labels)
             loss.backward()
-            return loss
-
-        try:
-            optimizer.step(_eval)
-        except Exception:
-            pass
+            optimizer.step()
 
 
 class SolarFlarePredictor(nn.Module):
@@ -101,7 +95,8 @@ class SolarFlarePredictor(nn.Module):
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),            # [B, 32, 64, 64]
             nn.BatchNorm2d(32),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)                             # [B, 32, 32, 32]
         )
 
         # Spatio-Temporal Recurrent Sequence Cell
@@ -131,8 +126,10 @@ class SolarFlarePredictor(nn.Module):
             x = x.repeat(1, 1, 4, 1, 1)
             c = 4
 
-        h_state = torch.zeros(b, self.hidden_dim, h // 4, w // 4, device=x.device)
-        c_state = torch.zeros(b, self.hidden_dim, h // 4, w // 4, device=x.device)
+        h_feat = h // 8
+        w_feat = w // 8
+        h_state = torch.zeros(b, self.hidden_dim, h_feat, w_feat, device=x.device)
+        c_state = torch.zeros(b, self.hidden_dim, h_feat, w_feat, device=x.device)
 
         # Recurrent sequence processing
         for i in range(t):
