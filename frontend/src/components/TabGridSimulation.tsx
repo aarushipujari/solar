@@ -138,142 +138,186 @@ export const TabGridSimulation: React.FC<TabGridSimulationProps> = ({
       ? satelliteAssets
       : aviationAssets;
 
-  return (
-    <div className="space-y-6">
-      {/* Title & Introduction */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
-            <Zap className="h-6 w-6 text-amber-400" />
-            Infrastructure Threat Simulation & Dynamic Damage Matrix
-          </h2>
-          <p className="text-xs text-slate-400 font-mono mt-1">
-            Real-time translation of learned ConvLSTM spatio-temporal precursor weights into critical Indian asset vulnerability indexes.
-          </p>
+    // Multi-tier vulnerability bar color scaler matching app status palette
+    const getVulnerabilityBarStyle = (percent: number) => {
+      if (percent >= 80) {
+        // Above ~80%: Full alert red (#ff4d67 / #ff334b)
+        return {
+          barClass: "bg-[#ff334b]",
+          style: {
+            backgroundColor: "#ff334b",
+            boxShadow: "0 0 10px rgba(255, 51, 75, 0.55)",
+          },
+        };
+      } else if (percent >= 60) {
+        // 60-80%: Deeper amber leaning toward red (#ff7a00 / coral-amber)
+        return {
+          barClass: "bg-[#ff7a00]",
+          style: {
+            backgroundColor: "#ff7a00",
+            boxShadow: "0 0 10px rgba(255, 122, 0, 0.45)",
+          },
+        };
+      } else if (percent >= 25) {
+        // Below ~60%: Amber (#ffb300, matching space-card-watch)
+        return {
+          barClass: "bg-[#ffb300]",
+          style: {
+            backgroundColor: "#ffb300",
+            boxShadow: "0 0 8px rgba(255, 179, 0, 0.35)",
+          },
+        };
+      } else {
+        // Nominal (< 25%): Emerald Green (#00e676, matching space-card-safe)
+        return {
+          barClass: "bg-[#00e676]",
+          style: {
+            backgroundColor: "#00e676",
+            boxShadow: "0 0 8px rgba(0, 230, 118, 0.35)",
+          },
+        };
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Title & Introduction */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+              <Zap className="h-6 w-6 text-amber-400" />
+              Infrastructure Threat Simulation & Dynamic Damage Matrix
+            </h2>
+            <p className="text-xs text-slate-400 font-mono mt-1">
+              Real-time translation of learned ConvLSTM spatio-temporal precursor weights into critical Indian asset vulnerability indexes.
+            </p>
+          </div>
+
+          {/* Sector Navigation Switcher */}
+          <div className="flex items-center gap-1.5 bg-space-950/80 p-1.5 rounded-2xl border border-white/10">
+            <button
+              onClick={() => setActiveSector("power")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
+                activeSector === "power"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-lg shadow-amber-500/20"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Zap className="h-4 w-4" />
+              <span>Power Grids</span>
+            </button>
+            <button
+              onClick={() => setActiveSector("satellite")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
+                activeSector === "satellite"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/20"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Navigation className="h-4 w-4" />
+              <span>Satellites & Crew</span>
+            </button>
+            <button
+              onClick={() => setActiveSector("aviation")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
+                activeSector === "aviation"
+                  ? "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-lg shadow-blue-500/20"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Plane className="h-4 w-4" />
+              <span>GPS & Aviation</span>
+            </button>
+          </div>
         </div>
 
-        {/* Sector Navigation Switcher */}
-        <div className="flex items-center gap-1.5 bg-space-950/80 p-1.5 rounded-2xl border border-white/10">
-          <button
-            onClick={() => setActiveSector("power")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
-              activeSector === "power"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-lg shadow-amber-500/20"
-                : "text-slate-400 hover:text-white"
-            }`}
+        {/* Dynamic Bento Grid of Assets */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSector}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <Zap className="h-4 w-4" />
-            <span>Power Grids</span>
-          </button>
-          <button
-            onClick={() => setActiveSector("satellite")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
-              activeSector === "satellite"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/20"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Navigation className="h-4 w-4" />
-            <span>Satellites & Crew</span>
-          </button>
-          <button
-            onClick={() => setActiveSector("aviation")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold font-mono transition-all cursor-pointer ${
-              activeSector === "aviation"
-                ? "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-lg shadow-blue-500/20"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Plane className="h-4 w-4" />
-            <span>GPS & Aviation</span>
-          </button>
-        </div>
-      </div>
+            {currentAssets.map((asset) => {
+              const isCrit = asset.severity === "critical";
+              const isWarn = asset.severity === "warning";
 
-      {/* Dynamic Bento Grid of Assets */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeSector}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.25 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {currentAssets.map((asset) => {
-            const isCrit = asset.severity === "critical";
-            const isWarn = asset.severity === "warning";
+              // Unified with app's exact alert-red (#ff334b / #ff4d67) and space-card-alert CSS palette
+              const cardBorder = isCrit
+                ? "border-[#ff334b]/60 bg-gradient-to-b from-[#2d0c16]/85 via-space-900 to-space-950 shadow-2xl shadow-[#ff334b]/20"
+                : isWarn
+                ? "border-amber-500/50 bg-gradient-to-b from-amber-950/40 via-space-900 to-space-950 shadow-2xl shadow-amber-500/15"
+                : "border-emerald-500/30 bg-gradient-to-b from-emerald-950/20 via-space-900 to-space-950 shadow-lg shadow-emerald-500/5";
 
-            const cardBorder = isCrit
-              ? "border-rose-500/50 bg-gradient-to-b from-rose-950/40 via-space-900 to-space-950 shadow-2xl shadow-rose-500/15"
-              : isWarn
-              ? "border-amber-500/50 bg-gradient-to-b from-amber-950/40 via-space-900 to-space-950 shadow-2xl shadow-amber-500/15"
-              : "border-emerald-500/30 bg-gradient-to-b from-emerald-950/20 via-space-900 to-space-950 shadow-lg shadow-emerald-500/5";
+              const badgeColor = isCrit
+                ? "bg-[#ff334b]/20 text-[#ff4d67] border border-[#ff334b]/60 font-bold font-mono tracking-wider animate-pulse"
+                : isWarn
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold font-mono"
+                : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold font-mono";
 
-            const badgeColor = isCrit
-              ? "bg-rose-500 text-black font-extrabold animate-pulse"
-              : isWarn
-              ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold"
-              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold";
+              // Severity-scaled dynamic bar styling
+              const barStyle = getVulnerabilityBarStyle(asset.riskPercent);
 
-            const barColor = isCrit ? "bg-rose-500" : isWarn ? "bg-amber-500" : "bg-emerald-500";
-
-            return (
-              <div
-                key={asset.id}
-                className={`rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] ${cardBorder}`}
-              >
-                <div>
-                  {/* Top Status Badge */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-                      {asset.region}
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono ${badgeColor}`}>
-                      {asset.status}
-                    </span>
-                  </div>
-
-                  {/* Asset Name */}
-                  <h3 className="text-base font-bold text-white mb-3">
-                    {asset.name}
-                  </h3>
-
-                  {/* Damage Gauge */}
-                  <div className="space-y-1.5 mb-4 p-3 rounded-2xl bg-space-950/80 border border-white/5">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-slate-400">PREDICTED VULNERABILITY</span>
-                      <span className="text-white font-bold">{asset.riskPercent}%</span>
+              return (
+                <div
+                  key={asset.id}
+                  className={`rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] ${cardBorder}`}
+                >
+                  <div>
+                    {/* Top Status Badge */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                        {asset.region}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono ${badgeColor}`}>
+                        {asset.status}
+                      </span>
                     </div>
-                    <div className="w-full bg-space-900 rounded-full h-2 overflow-hidden border border-white/10">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${asset.riskPercent}%` }}
-                        transition={{ duration: 0.8 }}
-                        className={`h-full rounded-full ${barColor}`}
-                      />
+
+                    {/* Asset Name */}
+                    <h3 className="text-base font-bold text-white mb-3">
+                      {asset.name}
+                    </h3>
+
+                    {/* Damage Gauge */}
+                    <div className="space-y-1.5 mb-4 p-3 rounded-2xl bg-space-950/80 border border-white/5">
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-slate-400">PREDICTED VULNERABILITY</span>
+                        <span className="text-white font-bold">{asset.riskPercent}%</span>
+                      </div>
+                      <div className="w-full bg-space-900 rounded-full h-2 overflow-hidden border border-white/10">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${asset.riskPercent}%` }}
+                          transition={{ duration: 0.8 }}
+                          className={`h-full rounded-full ${barStyle.barClass}`}
+                          style={barStyle.style}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Physical Proxy Measurement */}
+                    <div className="mb-4 text-xs font-mono bg-space-950/60 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
+                      <span className="text-slate-400 text-[11px]">{asset.metricLabel}</span>
+                      <span className="text-cyan-300 font-bold">{asset.metricValue}</span>
                     </div>
                   </div>
 
-                  {/* Physical Proxy Measurement */}
-                  <div className="mb-4 text-xs font-mono bg-space-950/60 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
-                    <span className="text-slate-400 text-[11px]">{asset.metricLabel}</span>
-                    <span className="text-cyan-300 font-bold">{asset.metricValue}</span>
+                  {/* Directive Action Box */}
+                  <div className="pt-3 border-t border-white/10 text-xs text-slate-300 font-sans leading-relaxed">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold block mb-1 uppercase">
+                      ⚡ Operational Directive:
+                    </span>
+                    {asset.directive}
                   </div>
                 </div>
-
-                {/* Directive Action Box */}
-                <div className="pt-3 border-t border-white/10 text-xs text-slate-300 font-sans leading-relaxed">
-                  <span className="text-[10px] font-mono text-amber-400 font-bold block mb-1 uppercase">
-                    ⚡ Operational Directive:
-                  </span>
-                  {asset.directive}
-                </div>
-              </div>
-            );
-          })}
-        </motion.div>
-      </AnimatePresence>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
 
       {/* Strategic Defence Footer Note */}
       <div className="rounded-2xl border border-cyan-500/20 bg-space-950/90 p-5 font-mono text-xs text-slate-300 flex flex-col md:flex-row items-center justify-between gap-4">
