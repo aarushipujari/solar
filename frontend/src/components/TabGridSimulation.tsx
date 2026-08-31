@@ -138,42 +138,56 @@ export const TabGridSimulation: React.FC<TabGridSimulationProps> = ({
       ? satelliteAssets
       : aviationAssets;
 
-    // Multi-tier vulnerability bar color scaler matching app status palette
+    // Multi-tier vulnerability bar color scaler with high visual contrast
     const getVulnerabilityBarStyle = (percent: number) => {
-      if (percent >= 80) {
-        // Above ~80%: Full alert red (#ff4d67 / #ff334b)
+      if (percent >= 90) {
+        // Extreme Critical Hazard (>= 90%): Pure Neon Crimson Red (#ff003b)
         return {
-          barClass: "bg-[#ff334b]",
+          barClass: "bg-[#ff003b]",
+          textColor: "text-[#ff003b]",
           style: {
-            backgroundColor: "#ff334b",
-            boxShadow: "0 0 10px rgba(255, 51, 75, 0.55)",
+            backgroundColor: "#ff003b",
+            boxShadow: "0 0 12px rgba(255, 0, 59, 0.75)",
+          },
+        };
+      } else if (percent >= 80) {
+        // Severe Risk (80% - 89%): Fiery Sunset Orange-Red (#ff5722)
+        return {
+          barClass: "bg-[#ff5722]",
+          textColor: "text-[#ff5722]",
+          style: {
+            backgroundColor: "#ff5722",
+            boxShadow: "0 0 10px rgba(255, 87, 34, 0.65)",
           },
         };
       } else if (percent >= 60) {
-        // 60-80%: Deeper amber leaning toward red (#ff7a00 / coral-amber)
+        // Elevated Precursor (60% - 79%): Golden Amber (#ffaa00)
         return {
-          barClass: "bg-[#ff7a00]",
+          barClass: "bg-[#ffaa00]",
+          textColor: "text-[#ffaa00]",
           style: {
-            backgroundColor: "#ff7a00",
-            boxShadow: "0 0 10px rgba(255, 122, 0, 0.45)",
+            backgroundColor: "#ffaa00",
+            boxShadow: "0 0 10px rgba(255, 170, 0, 0.55)",
           },
         };
       } else if (percent >= 25) {
-        // Below ~60%: Amber (#ffb300, matching space-card-watch)
+        // Moderate Watch (25% - 59%): Solar Yellow-Gold (#ffd600)
         return {
-          barClass: "bg-[#ffb300]",
+          barClass: "bg-[#ffd600]",
+          textColor: "text-[#ffd600]",
           style: {
-            backgroundColor: "#ffb300",
-            boxShadow: "0 0 8px rgba(255, 179, 0, 0.35)",
+            backgroundColor: "#ffd600",
+            boxShadow: "0 0 8px rgba(255, 214, 0, 0.45)",
           },
         };
       } else {
-        // Nominal (< 25%): Emerald Green (#00e676, matching space-card-safe)
+        // Nominal Baseline (< 25%): Emerald Green (#00e676)
         return {
           barClass: "bg-[#00e676]",
+          textColor: "text-[#00e676]",
           style: {
             backgroundColor: "#00e676",
-            boxShadow: "0 0 8px rgba(0, 230, 118, 0.35)",
+            boxShadow: "0 0 8px rgba(0, 230, 118, 0.45)",
           },
         };
       }
@@ -286,7 +300,7 @@ export const TabGridSimulation: React.FC<TabGridSimulationProps> = ({
                     <div className="space-y-1.5 mb-4 p-3 rounded-2xl bg-space-950/80 border border-white/5">
                       <div className="flex justify-between text-xs font-mono">
                         <span className="text-slate-400">PREDICTED VULNERABILITY</span>
-                        <span className="text-white font-bold">{asset.riskPercent}%</span>
+                        <span className={`font-bold font-mono ${barStyle.textColor}`}>{asset.riskPercent}%</span>
                       </div>
                       <div className="w-full bg-space-900 rounded-full h-2 overflow-hidden border border-white/10">
                         <motion.div
@@ -302,7 +316,7 @@ export const TabGridSimulation: React.FC<TabGridSimulationProps> = ({
                     {/* Physical Proxy Measurement */}
                     <div className="mb-4 text-xs font-mono bg-space-950/60 p-2.5 rounded-xl border border-white/5 flex justify-between items-center">
                       <span className="text-slate-400 text-[11px]">{asset.metricLabel}</span>
-                      <span className="text-cyan-300 font-bold">{asset.metricValue}</span>
+                      <span className={`font-bold font-mono ${barStyle.textColor}`}>{asset.metricValue}</span>
                     </div>
                   </div>
 
