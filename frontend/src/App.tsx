@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BackgroundBeams } from "./components/ui/background-beams";
+import { BlanketMesh } from "./components/ui/blanket-mesh";
 import { Spotlight } from "./components/ui/spotlight";
 import { Header } from "./components/Header";
 import { HeroLanding } from "./components/HeroLanding";
@@ -10,19 +11,31 @@ import { TabDiagnostics } from "./components/TabDiagnostics";
 import { TabGradCAM } from "./components/TabGradCAM";
 import { TabGridSimulation } from "./components/TabGridSimulation";
 import { TabTelemetryBulletin } from "./components/TabTelemetryBulletin";
-import { fetchPrediction, fetchGradCam, type PredictResponse, type GradCamResponse } from "./services/api";
+import {
+  fetchPrediction,
+  fetchGradCam,
+  FALLBACK_PREDICTIONS,
+  FALLBACK_GRADCAM,
+  type PredictResponse,
+  type GradCamResponse,
+} from "./services/api";
 import { Activity, Layers, Cpu, ShieldAlert, Award, Compass, Eye } from "lucide-react";
 
 export function App() {
   const [viewMode, setViewMode] = useState<"hero" | "dashboard">("hero");
   const [activeTab, setActiveTab] = useState<number>(0);
   const [scenario, setScenario] = useState<string>("AR3664_Impending_X_Flare");
-  const [prediction, setPrediction] = useState<PredictResponse | null>(null);
-  const [gradcam, setGradcam] = useState<GradCamResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [prediction, setPrediction] = useState<PredictResponse>(
+    FALLBACK_PREDICTIONS["AR3664_Impending_X_Flare"]
+  );
+  const [gradcam, setGradcam] = useState<GradCamResponse>(FALLBACK_GRADCAM["default"]);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const loadData = async (sc: string) => {
-    setLoading(true);
+    // Set fallback immediately for 0ms lag
+    if (FALLBACK_PREDICTIONS[sc]) {
+      setPrediction(FALLBACK_PREDICTIONS[sc]);
+    }
     try {
       const [predRes, gradRes] = await Promise.all([
         fetchPrediction(sc),
@@ -31,7 +44,7 @@ export function App() {
       setPrediction(predRes);
       setGradcam(gradRes);
     } catch (err) {
-      console.error("API error:", err);
+      console.warn("Using offline fallback telemetry", err);
     } finally {
       setLoading(false);
     }
@@ -53,6 +66,9 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-space-950 text-slate-100 relative selection:bg-cyan-500 selection:text-black font-sans">
+      {/* Interactive Elastic Blanket Mesh Physics */}
+      <BlanketMesh isFlareActive={isFlareActive} />
+
       {/* Background visual beams */}
       <BackgroundBeams />
 
