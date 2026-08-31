@@ -1,4 +1,4 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -7,6 +7,9 @@
 htmlcov/
 *.pt
 data/processed/*.pt
+data/full_resolution/
+data/full_resolution_real/
+data/full_resolution_synthetic/
 .env
 .venv
 env/

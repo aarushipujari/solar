@@ -28,6 +28,9 @@ if CONFIG_YAML_PATH.exists():
 else:
     CONFIG = {}
 
+# Data Ingestion Mode: "SYNTHETIC" or "REAL"
+DATA_MODE = os.getenv("SOLAR_DATA_MODE", CONFIG.get("data", {}).get("data_mode", "SYNTHETIC")).upper()
+
 # Paths Configuration
 BASE_DIR = Path(os.getenv("SOLAR_DATA_DIR", PROJECT_ROOT / "data"))
 RAW_DATA_DIR = BASE_DIR / "raw"
@@ -38,9 +41,23 @@ MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_LATEST_DIR = MODELS_DIR / "latest"
 MODELS_BASELINE_DIR = MODELS_DIR / "baseline"
 
-# Backward compatibility paths
-DATA_DIR = BASE_DIR / "full_resolution"
+# Data Directories for Dual-Mode (Synthetic vs Real SDO Benchmark)
+SYNTHETIC_DATA_DIR = BASE_DIR / "full_resolution_synthetic"
+REAL_DATA_DIR = BASE_DIR / "full_resolution_real"
 OUTPUT_DIR = BASE_DIR / "processed_patches"
+
+# Select active DATA_DIR based on DATA_MODE
+if DATA_MODE == "REAL":
+    DATA_DIR = REAL_DATA_DIR
+else:
+    # If SYNTHETIC_DATA_DIR has files, prioritize it; otherwise fallback to legacy full_resolution
+    legacy_dir = BASE_DIR / "full_resolution"
+    if SYNTHETIC_DATA_DIR.exists() and any(SYNTHETIC_DATA_DIR.glob("*.fits")):
+        DATA_DIR = SYNTHETIC_DATA_DIR
+    elif legacy_dir.exists() and any(legacy_dir.glob("*.fits")):
+        DATA_DIR = legacy_dir
+    else:
+        DATA_DIR = SYNTHETIC_DATA_DIR
 
 # Ensure all structured directories exist
 for directory in [
@@ -52,6 +69,8 @@ for directory in [
     MODELS_DIR,
     MODELS_LATEST_DIR,
     MODELS_BASELINE_DIR,
+    SYNTHETIC_DATA_DIR,
+    REAL_DATA_DIR,
     DATA_DIR,
     OUTPUT_DIR
 ]:

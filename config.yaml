@@ -8,11 +8,14 @@ system:
   device: "cpu"  # "cuda" if GPU is available
 
 data:
+  data_mode: "SYNTHETIC"  # "SYNTHETIC" or "REAL"
   raw_dir: "data/raw"
   processed_dir: "data/processed"
   catalogs_dir: "data/catalogs"
   demo_dir: "data/demo_scenarios"
   models_dir: "models"
+  synthetic_dir: "data/full_resolution_synthetic"
+  real_dir: "data/full_resolution_real"
   
   # Image Pipeline
   image_size: [256, 256]
