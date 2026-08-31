@@ -101,10 +101,9 @@ export const EarthGlobe3D = ({
     const innerMesh = new THREE.Mesh(innerGeo, innerMat);
     globeGroup.add(innerMesh);
 
-    // 2. Latitude & Longitude Coordinate Lines
-    const gridColor = isCritical ? 0xff5252 : 0x00e5ff;
+    // 2. Latitude & Longitude Coordinate Lines (Neutral Electric Cyan)
     const gridMat = new THREE.LineBasicMaterial({
-      color: gridColor,
+      color: 0x00e5ff,
       transparent: true,
       opacity: 0.22,
     });
@@ -123,7 +122,7 @@ export const EarthGlobe3D = ({
       globeGroup.add(latLine);
     }
 
-    // 3. India Highlight Marker with Pulsing Ring
+    // 3. India Highlight Marker with Pulsing Ring (ISRO Ground Pin)
     const phi = (90 - 21) * (Math.PI / 180);
     const theta = (78 + 180) * (Math.PI / 180);
     const pinRadius = earthRadius + 0.05;
@@ -137,14 +136,15 @@ export const EarthGlobe3D = ({
     pinMesh.position.set(pinX, pinY, pinZ);
     globeGroup.add(pinMesh);
 
-    // 4. Magnetosphere Bow Shock & Magnetopause Lines
+    // 4. Magnetosphere Bow Shock & Magnetopause Lines (Neutral Cyber Palette: Cyan / Sky-Blue / Silver)
     const shieldRings: THREE.Mesh[] = [];
+    const shieldColors = [0x00e5ff, 0x38bdf8, 0x00b0ff, 0x7dd3fc, 0xe2e8f0];
     for (let i = 0; i < 5; i++) {
       const ringGeo = new THREE.TorusGeometry(2.1 + i * 0.25, 0.02, 16, 64);
       const ringMat = new THREE.MeshBasicMaterial({
-        color: isCritical ? (i % 2 === 0 ? 0xff334b : 0xff9100) : 0x00e5ff,
+        color: shieldColors[i % shieldColors.length],
         transparent: true,
-        opacity: isCritical ? 0.75 : 0.28,
+        opacity: isCritical ? 0.42 : 0.26,
         wireframe: true,
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -154,7 +154,7 @@ export const EarthGlobe3D = ({
       shieldRings.push(ring);
     }
 
-    // 5. NavIC GSO Inclined Orbits & Satellites (3 Nodes)
+    // 5. NavIC GSO Inclined Orbits & Satellites (Crisp Solar Gold / Amber)
     const navicOrbits: THREE.Line[] = [];
     const navicSats: THREE.Mesh[] = [];
     const inclinations = [0.45, -0.45, 0.0];
@@ -177,7 +177,7 @@ export const EarthGlobe3D = ({
       const orbitLine = new THREE.Line(
         orbitGeo,
         new THREE.LineBasicMaterial({
-          color: isCritical ? 0xff9100 : 0xffb300,
+          color: 0xffb300,
           transparent: true,
           opacity: 0.5,
         })

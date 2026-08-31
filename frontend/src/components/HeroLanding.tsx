@@ -93,7 +93,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({
               className="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-extrabold text-white tracking-tight leading-[1.2] md:leading-[1.18]"
             >
               Predicting Solar Eruptions{" "}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400">
                 24 to 48 Hours
               </span>{" "}
               Before Earth Impact.
@@ -114,7 +114,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({
                 <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
                   ⚡ 4-Channel ConvLSTM
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/30">
                   🔍 PyTorch Grad-CAM XAI
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
@@ -135,7 +135,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({
                 onClick={onEnterDashboard}
                 className="relative group/btn overflow-hidden rounded-2xl p-[2px] cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-2xl shadow-cyan-500/25"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-shimmer" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-teal-400 animate-shimmer" />
                 <div className="relative px-7 py-3.5 bg-space-950 rounded-2xl flex items-center gap-3 text-sm md:text-base font-bold text-white transition-colors group-hover/btn:bg-space-900">
                   <span>LAUNCH MISSION DASHBOARD</span>
                   <ArrowRight className="h-5 w-5 text-cyan-400 transition-transform group-hover/btn:translate-x-1" />

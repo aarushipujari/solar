@@ -125,9 +125,7 @@ export const BlanketMesh = ({
       // Spawn stardust sparks on mouse motion
       const speed = Math.hypot(mouse.speedX, mouse.speedY);
       if (speed > 1.5 && particles.length < 80) {
-        const pColors = isFlareActive
-          ? ["#ff334b", "#ff9100", "#ffea00", "#ff1744", "#ffffff"]
-          : ["#00e5ff", "#00b0ff", "#7c4dff", "#00e676", "#ffffff"];
+        const pColors = ["#00e5ff", "#00b0ff", "#38bdf8", "#00e676", "#ffffff"];
         for (let i = 0; i < Math.min(4, Math.floor(speed / 3) + 1); i++) {
           particles.push({
             x: currentX + (Math.random() - 0.5) * 16,
@@ -159,13 +157,13 @@ export const BlanketMesh = ({
     window.addEventListener("resize", initGrid);
 
     const sinkRadius = 180;
-    const maxDepth = isFlareActive ? 52 : 38;
+    const maxDepth = 40;
     const recoverySpeed = 0.22; // Split-second smooth return (no wavy ringing)
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Draw Space Background Nebula
+      // 1. Draw Space Background Nebula in Deep Navy & Subtle Cyan
       const nebulaGrad = ctx.createRadialGradient(
         width * 0.5,
         height * 0.3,
@@ -174,7 +172,7 @@ export const BlanketMesh = ({
         height * 0.5,
         width * 0.75
       );
-      nebulaGrad.addColorStop(0, isFlareActive ? "rgba(255, 51, 75, 0.07)" : "rgba(0, 229, 255, 0.06)");
+      nebulaGrad.addColorStop(0, "rgba(0, 229, 255, 0.05)");
       nebulaGrad.addColorStop(0.5, "rgba(6, 9, 25, 0.35)");
       nebulaGrad.addColorStop(1, "rgba(3, 7, 18, 0.95)");
       ctx.fillStyle = nebulaGrad;
@@ -234,7 +232,7 @@ export const BlanketMesh = ({
           if (dist < sinkRadius && dist > 0) {
             const factor = Math.pow(1 - dist / sinkRadius, 2.0);
             targetZ = factor * maxDepth;
-            const inwardPull = factor * (isFlareActive ? 14 : 10);
+            const inwardPull = factor * 10;
             targetX = p.originX - (dx / dist) * inwardPull;
             targetY = p.originY - (dy / dist) * inwardPull;
           }
@@ -256,8 +254,8 @@ export const BlanketMesh = ({
           mouse.y,
           sinkRadius * 0.95
         );
-        sinkGrad.addColorStop(0, isFlareActive ? "rgba(35, 3, 10, 0.45)" : "rgba(1, 6, 18, 0.5)");
-        sinkGrad.addColorStop(0.5, isFlareActive ? "rgba(255, 51, 75, 0.08)" : "rgba(0, 229, 255, 0.08)");
+        sinkGrad.addColorStop(0, "rgba(1, 6, 18, 0.55)");
+        sinkGrad.addColorStop(0.5, "rgba(0, 229, 255, 0.06)");
         sinkGrad.addColorStop(1, "rgba(3, 7, 18, 0)");
 
         ctx.fillStyle = sinkGrad;
@@ -270,18 +268,14 @@ export const BlanketMesh = ({
           const rRing = (sinkRadius / 2.8) * i;
           ctx.beginPath();
           ctx.arc(mouse.x, mouse.y, rRing, 0, Math.PI * 2);
-          ctx.strokeStyle = isFlareActive
-            ? `rgba(255, 145, 0, ${0.20 - i * 0.06})`
-            : `rgba(0, 229, 255, ${0.20 - i * 0.06})`;
+          ctx.strokeStyle = `rgba(0, 229, 255, ${0.18 - i * 0.05})`;
           ctx.lineWidth = 0.8;
           ctx.stroke();
         }
       }
 
       // 6. Draw Mesh Lines with 3D Depth Curve
-      const defaultLineColor = isFlareActive
-        ? "rgba(255, 51, 75, 0.22)"
-        : "rgba(0, 229, 255, 0.22)";
+      const defaultLineColor = "rgba(0, 229, 255, 0.18)";
 
       ctx.lineWidth = 1.1;
 

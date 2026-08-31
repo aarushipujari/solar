@@ -46,26 +46,25 @@ export const Vortex = ({
       alpha: number;
     }> = [];
 
-    const calmColors = ["#00e5ff", "#00b0ff", "#4fc3f7", "#7c4dff", "#00e676"];
-    const flareColors = ["#ff334b", "#ff5252", "#ffb300", "#ff9100", "#ff1744"];
+    // Cohesive Deep Space Palette (Navy/Cyan/Stellar White)
+    const cosmicColors = ["#00e5ff", "#00b0ff", "#38bdf8", "#60a5fa", "#e0e6ed", "#00e676"];
 
     for (let i = 0; i < particleCount; i++) {
-      const colors = isFlareActive ? flareColors : calmColors;
       particles.push({
         x: width / 2,
         y: height / 2,
-        radius: Math.random() * 2.2 + 0.8,
+        radius: Math.random() * 2.0 + 0.7,
         angle: Math.random() * Math.PI * 2,
         distance: Math.random() * (Math.max(width, height) / 2),
-        speed: (Math.random() * 0.008 + 0.003) * (isFlareActive ? 2.5 : 1),
-        color: colors[Math.floor(Math.random() * colors.length)],
-        alpha: Math.random() * 0.7 + 0.3,
+        speed: (Math.random() * 0.006 + 0.003),
+        color: cosmicColors[Math.floor(Math.random() * cosmicColors.length)],
+        alpha: Math.random() * 0.6 + 0.25,
       });
     }
 
     const render = () => {
-      // Create motion blur trail
-      ctx.fillStyle = "rgba(3, 7, 18, 0.25)";
+      // Create motion blur trail in deep space navy-black
+      ctx.fillStyle = "rgba(3, 7, 18, 0.28)";
       ctx.fillRect(0, 0, width, height);
 
       const centerX = width / 2;
@@ -73,7 +72,7 @@ export const Vortex = ({
 
       particles.forEach((p) => {
         p.angle += p.speed;
-        p.distance += isFlareActive ? 1.2 : 0.4;
+        p.distance += 0.5;
 
         if (p.distance > Math.max(width, height) / 1.5) {
           p.distance = Math.random() * 40;
