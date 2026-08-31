@@ -151,6 +151,7 @@ def test_fastapi_endpoints():
     res_health = client.get("/health")
     assert res_health.status_code == 200
     assert res_health.json()["status"] == "ONLINE"
+    assert "model_loaded" in res_health.json()
 
     # Test /model/info
     res_info = client.get("/model/info")
@@ -162,6 +163,12 @@ def test_fastapi_endpoints():
     assert res_ar.status_code == 200
     assert len(res_ar.json()["tracked_active_regions"]) >= 3
 
+    # Test /metrics
+    res_metrics = client.get("/metrics")
+    assert res_metrics.status_code == 200
+    metrics_data = res_metrics.json()
+    assert "single_split_test_metrics" in metrics_data or "loro_cv_aggregate_summary" in metrics_data
+
     # Test /predict
     res_pred = client.post("/predict", json={"scenario_id": "AR3664_Impending_X_Flare", "data_mode": "DEMO"})
     assert res_pred.status_code == 200
@@ -169,3 +176,22 @@ def test_fastapi_endpoints():
     assert "mx_probability_24h" in data
     assert "predicted_class" in data
     assert "mitigation_directives" in data
+    assert "forecast_window" in data
+
+    # Test /bulletin (dynamic ISSDC bulletin with params & bare call)
+    res_bulletin = client.get("/bulletin?scenario_id=AR3664_Impending_X_Flare&data_mode=DEMO")
+    assert res_bulletin.status_code == 200
+    assert "INDIAN SPACE RESEARCH ORGANISATION" in res_bulletin.text
+    assert "Aditya-L1" in res_bulletin.text
+
+    # Test /bulletin bare call (without query params)
+    res_bare_bulletin = client.get("/bulletin")
+    assert res_bare_bulletin.status_code == 200
+    assert "INDIAN SPACE RESEARCH ORGANISATION" in res_bare_bulletin.text
+
+    # Test /api/gradcam
+    res_cam = client.get("/api/gradcam?scenario_id=AR3664_Impending_X_Flare")
+    assert res_cam.status_code == 200
+    cam_data = res_cam.json()
+    assert "frames" in cam_data
+    assert len(cam_data["frames"]) == 4
