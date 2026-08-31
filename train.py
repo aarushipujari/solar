@@ -210,10 +210,10 @@ def run_training(num_epochs=10, batch_size=16, lr=0.0005):
         "input_channels": 4,
         "sequence_length": SEQ_LENGTH,
         "active_regions": {
-            "train": TRAIN_ACTIVE_REGIONS,
-            "validation": VAL_ACTIVE_REGIONS,
-            "test": TEST_ACTIVE_REGIONS,
-            "all_active_regions": ALL_ACTIVE_REGIONS
+            "train": list(train_ds.df["active_region"].unique()),
+            "validation": list(val_ds.df["active_region"].unique()),
+            "test": list(test_ds.df["active_region"].unique()),
+            "all_active_regions": sorted(list(set(train_ds.df["active_region"].unique()) | set(val_ds.df["active_region"].unique()) | set(test_ds.df["active_region"].unique())))
         },
         "optimal_threshold": optimal_threshold,
         "calibrated_temperature": calibrated_temp,

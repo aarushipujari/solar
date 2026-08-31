@@ -181,27 +181,42 @@ def get_active_region_split_datasets():
     """
     Returns train, validation, and test datasets partitioned strictly by NOAA active regions.
     """
-    labels_csv = CATALOGS_DIR / "sequence_labels.csv"
-    if not labels_csv.exists():
-        labels_csv = BASE_DIR / "sequence_labels.csv"
+    train_split_csv = PROCESSED_DATA_DIR / "train_split.csv"
+    val_split_csv = PROCESSED_DATA_DIR / "val_split.csv"
+    test_split_csv = PROCESSED_DATA_DIR / "test_split.csv"
 
-    if labels_csv.exists():
-        labels_df = pd.read_csv(labels_csv)
+    if train_split_csv.exists() and val_split_csv.exists() and test_split_csv.exists():
+        train_df = pd.read_csv(train_split_csv)
+        val_df = pd.read_csv(val_split_csv)
+        test_df = pd.read_csv(test_split_csv)
     else:
-        labels_df = build_forward_target_labels()
+        labels_csv = CATALOGS_DIR / "sequence_labels.csv"
+        if not labels_csv.exists():
+            labels_csv = BASE_DIR / "sequence_labels.csv"
 
-    train_df = labels_df[labels_df["active_region"].isin(TRAIN_ACTIVE_REGIONS)].copy()
-    val_df = labels_df[labels_df["active_region"].isin(VAL_ACTIVE_REGIONS)].copy()
-    test_df = labels_df[labels_df["active_region"].isin(TEST_ACTIVE_REGIONS)].copy()
+        if labels_csv.exists():
+            labels_df = pd.read_csv(labels_csv)
+        else:
+            labels_df = build_forward_target_labels()
 
-    # Fallback if regions don't match exactly
-    if len(train_df) == 0:
-        n_total = len(labels_df)
-        n_train = int(n_total * 0.7)
-        n_val = int(n_total * 0.15)
-        train_df = labels_df.iloc[:n_train].copy()
-        val_df = labels_df.iloc[n_train: n_train + n_val].copy()
-        test_df = labels_df.iloc[n_train + n_val:].copy()
+        train_df = labels_df[labels_df["active_region"].isin(TRAIN_ACTIVE_REGIONS)].copy()
+        val_df = labels_df[labels_df["active_region"].isin(VAL_ACTIVE_REGIONS)].copy()
+        test_df = labels_df[labels_df["active_region"].isin(TEST_ACTIVE_REGIONS)].copy()
+
+        # Fallback if regions don't match hardcoded list: disjoint partition of unique ARs
+        if len(train_df) == 0:
+            unique_ars = sorted(list(labels_df["active_region"].unique()))
+            n_ar = len(unique_ars)
+            n_train = int(n_ar * 0.70)
+            n_val = int(n_ar * 0.15)
+
+            train_ars = set(unique_ars[:n_train])
+            val_ars = set(unique_ars[n_train: n_train + n_val])
+            test_ars = set(unique_ars[n_train + n_val:])
+
+            train_df = labels_df[labels_df["active_region"].isin(train_ars)].copy()
+            val_df = labels_df[labels_df["active_region"].isin(val_ars)].copy()
+            test_df = labels_df[labels_df["active_region"].isin(test_ars)].copy()
 
     train_ds = SolarSequenceDataset(split_df=train_df)
     val_ds = SolarSequenceDataset(split_df=val_df)

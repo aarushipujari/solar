@@ -8,7 +8,7 @@ system:
   device: "cpu"  # "cuda" if GPU is available
 
 data:
-  data_mode: "SYNTHETIC"  # "SYNTHETIC" or "REAL"
+  data_mode: "REAL"  # "SYNTHETIC" or "REAL"
   raw_dir: "data/raw"
   processed_dir: "data/processed"
   catalogs_dir: "data/catalogs"
