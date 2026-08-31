@@ -160,16 +160,24 @@ pytest tests/test_pipeline.py -v
 python train.py
 ```
 
-### 5. Launch the Streamlit Space Command Center
-```bash
-streamlit run app.py
-```
-
-### 6. Launch the FastAPI Production Microservice
+### 5. Launch the FastAPI Microservice Backend
 ```bash
 uvicorn api:app --reload --port 8000
 ```
 * Interactive OpenAPI Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### 6. Launch the Aceternity UI Space Command Center (React + TypeScript)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+* Open in browser: [http://localhost:5173](http://localhost:5173)
+
+### 7. (Optional Fallback) Launch the Streamlit Dashboard
+```bash
+streamlit run app.py
+```
 
 ---
 
