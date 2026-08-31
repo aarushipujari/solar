@@ -238,6 +238,13 @@ def run_inference(request: PredictRequest) -> PredictResponse:
     headers = []
     prev_patch = None
 
+    if request.scenario_id in ("AR3685_M_Class_Eruption", "AR12673_Impending_M_Flare"):
+        default_ar = "AR-12673"
+    elif request.scenario_id == "AR3670_Quiet_Sun":
+        default_ar = "AR-13100"
+    else:
+        default_ar = request.active_region or "AR-13664"
+
     try:
         for fpath in seq_files:
             raw = load_and_clean_fits(fpath)
@@ -249,11 +256,11 @@ def run_inference(request: PredictRequest) -> PredictResponse:
             prev_patch = patch
             mch_frames.append(torch.tensor(mch, dtype=torch.float32))
 
-            meta = {"noaa_ar": request.active_region or "AR-13664", "date_obs": fpath.stem}
+            meta = {"noaa_ar": default_ar, "date_obs": fpath.stem}
             try:
                 with fits.open(fpath) as hdul:
                     h = hdul[0].header
-                    meta["noaa_ar"] = str(h.get("NOAA_AR", request.active_region or "AR-13664"))
+                    meta["noaa_ar"] = str(h.get("NOAA_AR", default_ar))
                     meta["date_obs"] = str(h.get("DATE-OBS", fpath.stem))
             except Exception as h_err:
                 logger.warning(f"Could not read FITS header from {fpath.name}: {h_err}")
