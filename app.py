@@ -47,84 +47,159 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # COMMAND CENTER STYLESHEET (Cyber / Space-Ops Dark Theme)
 # -----------------------------------------------------------------------------
 st.markdown("""
 <style>
-    .stApp {
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+    html, body, [class*="css"], .stApp {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background-color: #060a14;
         color: #e0e6ed;
     }
-    
+
+    /* Monospace Typography for Numeric Telemetry, Badges, and Data */
+    .font-mono,
+    .telemetry-val,
+    .mono-data,
+    code,
+    pre,
+    .telemetry-bar,
+    .badge-real,
+    .badge-demo,
+    .badge-cyan,
+    .badge-red,
+    div[data-testid="stMetricValue"],
+    div[data-testid="stMetricDelta"] {
+        font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace !important;
+    }
+
+    /* Primary Command Header */
     .isro-header {
-        background: linear-gradient(135deg, #0b1528 0%, #102042 50%, #182e5c 100%);
-        border: 1px solid rgba(0, 229, 255, 0.3);
+        background: linear-gradient(135deg, #091326 0%, #0d1b38 50%, #15274d 100%);
+        border: 1px solid rgba(0, 229, 255, 0.35);
         border-radius: 12px;
-        padding: 16px 22px;
+        padding: 18px 24px;
         margin-bottom: 18px;
-        box-shadow: 0 0 25px rgba(0, 229, 255, 0.12);
+        box-shadow: 0 0 30px rgba(0, 229, 255, 0.12);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .isro-header:hover {
+        border-color: rgba(0, 229, 255, 0.55);
+        box-shadow: 0 0 35px rgba(0, 229, 255, 0.18);
     }
     
+    /* Standard Neutral Cyber Card */
     .space-card {
         background: rgba(13, 22, 45, 0.85);
-        border: 1px solid rgba(0, 229, 255, 0.2);
+        border: 1px solid rgba(0, 229, 255, 0.22);
         border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .space-card:hover {
+        border-color: rgba(0, 229, 255, 0.45);
+        box-shadow: 0 6px 22px rgba(0, 229, 255, 0.12), 0 4px 15px rgba(0, 0, 0, 0.6);
+        transform: translateY(-1px);
     }
 
+    /* Critical Condition Pulse Animation */
+    @keyframes alertPulseGlow {
+        0%, 100% {
+            box-shadow: 0 0 16px rgba(255, 51, 75, 0.3), 0 0 32px rgba(255, 51, 75, 0.15);
+            border-color: rgba(255, 51, 75, 0.65);
+        }
+        50% {
+            box-shadow: 0 0 28px rgba(255, 51, 75, 0.55), 0 0 54px rgba(255, 51, 75, 0.3);
+            border-color: rgba(255, 51, 75, 1.0);
+        }
+    }
+
+    /* Alert / Critical Red Card (Pulsing only on actual Critical State) */
     .space-card-alert {
-        background: rgba(45, 12, 22, 0.85);
-        border: 1px solid rgba(255, 51, 75, 0.6);
+        background: rgba(45, 12, 22, 0.88);
+        border: 1px solid rgba(255, 51, 75, 0.7);
         border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 0 20px rgba(255, 51, 75, 0.25);
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        animation: alertPulseGlow 2.4s ease-in-out infinite;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .space-card-alert:hover {
+        transform: translateY(-1px);
     }
 
+    /* Amber / Watch Card (No pulse, clean steady glow) */
     .space-card-watch {
         background: rgba(45, 35, 12, 0.85);
-        border: 1px solid rgba(255, 179, 0, 0.6);
+        border: 1px solid rgba(255, 179, 0, 0.65);
         border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 0 20px rgba(255, 179, 0, 0.2);
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 0 20px rgba(255, 179, 0, 0.18);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .space-card-watch:hover {
+        border-color: rgba(255, 179, 0, 0.9);
+        box-shadow: 0 6px 22px rgba(255, 179, 0, 0.28);
+        transform: translateY(-1px);
     }
 
+    /* Green / Nominal Safe Card (No pulse, calm steady green) */
     .space-card-safe {
         background: rgba(12, 40, 25, 0.85);
         border: 1px solid rgba(0, 230, 118, 0.6);
         border-radius: 10px;
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 0 20px rgba(0, 230, 118, 0.18);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .space-card-safe:hover {
+        border-color: rgba(0, 230, 118, 0.9);
+        box-shadow: 0 6px 22px rgba(0, 230, 118, 0.28);
+        transform: translateY(-1px);
     }
 
+    /* Live Telemetry Status Bar */
     .telemetry-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
         background: rgba(8, 14, 30, 0.95);
-        border-top: 1px solid rgba(0, 229, 255, 0.25);
-        border-bottom: 1px solid rgba(0, 229, 255, 0.25);
-        padding: 8px 18px;
+        border-top: 1px solid rgba(0, 229, 255, 0.28);
+        border-bottom: 1px solid rgba(0, 229, 255, 0.28);
+        padding: 10px 20px;
         font-size: 0.82rem;
         color: #9bb0c9;
-        margin-bottom: 16px;
-        border-radius: 6px;
+        margin-bottom: 18px;
+        border-radius: 8px;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        transition: all 0.25s ease;
+    }
+    .telemetry-bar:hover {
+        border-color: rgba(0, 229, 255, 0.45);
     }
 
+    /* Status & Data Provenance Badges */
     .badge-real {
         background-color: rgba(0, 230, 118, 0.15);
         color: #00e676;
         padding: 4px 12px;
         border-radius: 12px;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 700;
+        letter-spacing: 0.04em;
         border: 1px solid #00e676;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .badge-demo {
@@ -132,30 +207,98 @@ st.markdown("""
         color: #ffb300;
         padding: 4px 12px;
         border-radius: 12px;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 700;
+        letter-spacing: 0.04em;
         border: 1px solid #ffb300;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .badge-cyan {
         background-color: rgba(0, 229, 255, 0.15);
         color: #00e5ff;
-        padding: 3px 10px;
+        padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.76rem;
         font-weight: 600;
-        border: 1px solid rgba(0, 229, 255, 0.4);
+        letter-spacing: 0.03em;
+        border: 1px solid rgba(0, 229, 255, 0.45);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
     
     .badge-red {
-        background-color: rgba(255, 51, 75, 0.18);
+        background-color: rgba(255, 51, 75, 0.2);
         color: #ff4d67;
-        padding: 3px 10px;
+        padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.76rem;
-        font-weight: 600;
-        border: 1px solid rgba(255, 51, 75, 0.5);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255, 51, 75, 0.6);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
+
+    /* Streamlit UI Component Refinements */
+    div[data-testid="stMetric"] {
+        background: rgba(13, 22, 45, 0.75);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 8px;
+        padding: 12px 14px;
+        transition: all 0.25s ease;
+    }
+    div[data-testid="stMetric"]:hover {
+        border-color: rgba(0, 229, 255, 0.4);
+        transform: translateY(-1px);
+    }
+    div[data-testid="stMetricLabel"] {
+        font-size: 0.76rem !important;
+        color: #9bb0c9 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+
+    /* Tab Header Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: rgba(8, 14, 30, 0.7);
+        padding: 6px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 229, 255, 0.18);
+        margin-bottom: 18px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #8ba2be;
+        border-radius: 6px;
+        padding: 8px 16px;
+        transition: all 0.2s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background: rgba(0, 229, 255, 0.15) !important;
+        color: #00e5ff !important;
+        border: 1px solid rgba(0, 229, 255, 0.35) !important;
+    }
+
+    /* Utility Color Classes */
+    .text-cyan { color: #00e5ff !important; }
+    .text-red { color: #ff4d67 !important; }
+    .text-amber { color: #ffb300 !important; }
+    .text-green { color: #00e676 !important; }
+    .text-muted { color: #9bb0c9 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,34 +386,36 @@ ist_now = utc_now + timedelta(hours=5, minutes=30)
 
 st.markdown(f"""
 <div class="isro-header">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
         <div>
-            <span class="badge-cyan">🇮🇳 ISRO ADITYA-L1 SPACE WEATHER OPS</span>
-            <span class="badge-cyan" style="margin-left: 6px;">SMART INDIA HACKATHON 2026</span>
-            <h1 style="margin: 6px 0 2px 0; font-size: 1.85rem; font-weight: 700; color: #ffffff;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span class="badge-cyan">🇮🇳 ISRO ADITYA-L1 SPACE WEATHER OPS</span>
+                <span class="badge-cyan">SMART INDIA HACKATHON 2026</span>
+            </div>
+            <h1 style="margin: 0 0 4px 0; font-size: 1.85rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">
                 ☀️ Aditya-L1 Solar Flare & Space Weather Warning System
             </h1>
             <p style="margin: 0; font-size: 0.88rem; color: #9bb0c9;">
                 Spatio-Temporal Deep Learning Forecasting (24–48h) for Critical Space & Power Infrastructure
             </p>
         </div>
-        <div style="text-align: right;">
-            <div style="font-size: 0.75rem; color: #7f93ad;">ORBITAL TRAJECTORY</div>
-            <div style="font-size: 1.0rem; font-weight: bold; color: #00e5ff;">Sun-Earth L1 Halo Orbit</div>
-            <div style="font-size: 0.72rem; color: #00e676;">● Downlink: <b>NOMINAL (ISSDC Bylalu)</b></div>
+        <div style="text-align: right; background: rgba(6, 12, 28, 0.75); padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(0, 229, 255, 0.25);">
+            <div style="font-size: 0.70rem; font-weight: 600; color: #7f93ad; letter-spacing: 0.05em; text-transform: uppercase;">ORBITAL TRAJECTORY</div>
+            <div class="font-mono text-cyan" style="font-size: 0.95rem; font-weight: 700;">Sun-Earth L1 Halo Orbit</div>
+            <div style="font-size: 0.72rem; color: #00e676; margin-top: 2px;">● Downlink: <b>NOMINAL (ISSDC Bylalu)</b></div>
         </div>
     </div>
 </div>
 
-<div class="space-card" style="border-left: 4px solid #00e5ff; background: rgba(13, 22, 45, 0.85); margin-bottom: 15px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-weight: 700; color: #00e5ff; font-size: 0.92rem;">🎯 SIH Mission Objective & Data Architecture</span>
+<div class="space-card" style="border-left: 4px solid #00e5ff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+        <span class="text-cyan" style="font-weight: 700; font-size: 0.92rem; letter-spacing: -0.01em;">🎯 SIH Mission Objective & Data Architecture</span>
         <span class="badge-cyan">Transforming Reactive Mitigation into Proactive Defence</span>
     </div>
-    <p style="margin: 0 0 6px 0; font-size: 0.85rem; line-height: 1.5; color: #cdd9e5;">
-        To protect critical satellite communication, global navigation networks (<b>NavIC / GPS</b>), and power infrastructure (<b>PGCIL</b>) from destructive geomagnetic storms and CMEs, our project leverages 4-channel spatio-temporal deep learning (<b>CNN + ConvLSTM</b>) trained on a physics-informed synthetic dataset built in the <b>Aditya-L1 SUIT FITS format</b>, modeled on historically significant NOAA active regions (<b>AR-13664, AR-12673, AR-11158</b>) — with a real PRADAN ingestion pipeline built and ready pending ISSDC data access approval, providing predictive forecasts <b>24 to 48 hours prior to Earth impact</b>.
+    <p style="margin: 0 0 10px 0; font-size: 0.86rem; line-height: 1.55; color: #cdd9e5;">
+        To protect critical satellite communication, global navigation networks (<b>NavIC / GPS</b>), and power infrastructure (<b>PGCIL</b>) from destructive geomagnetic storms and CMEs, our project leverages 4-channel spatio-temporal deep learning (<b>CNN + ConvLSTM</b>) trained on a physics-informed dataset built in the <b>Aditya-L1 SUIT FITS format</b>, modeled on historically significant NOAA active regions (<b>AR-13664, AR-12673, AR-11158</b>) — with a real PRADAN ingestion pipeline ready pending ISSDC data access approval, providing predictive forecasts <b>24 to 48 hours prior to Earth impact</b>.
     </p>
-    <div style="display: flex; gap: 16px; font-size: 0.78rem; color: #8ba2be; flex-wrap: wrap;">
+    <div style="display: flex; gap: 20px; font-size: 0.78rem; color: #8ba2be; flex-wrap: wrap; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
         <div>⚠️ <b>The Threat:</b> Geomagnetic storms & CMEs disrupt GPS/NavIC synchronization and induce destructive GIC currents in 765kV transformers.</div>
         <div>🚀 <b>The AI Solution:</b> Spatio-temporal 4-channel forecasting with authentic autograd Grad-CAM model attribution.</div>
     </div>
@@ -391,14 +536,14 @@ except Exception:
 # -----------------------------------------------------------------------------
 # LIVE TELEMETRY STATUS BAR
 # -----------------------------------------------------------------------------
-data_badge_html = '<span class="badge-real">DATA MODE: REAL BENCHMARK</span>' if current_data_mode == "REAL" else '<span class="badge-demo">DATA MODE: DEMO / SIMULATED DATA</span>'
+data_badge_html = '<span class="badge-real">● REAL BENCHMARK DATA</span>' if current_data_mode == "REAL" else '<span class="badge-demo">● [SIMULATED] SUIT PRESET</span>'
 
 st.markdown(f"""
-<div class="telemetry-bar">
-    <div>🕒 <b>Observation Time:</b> {headers[-1]['date_obs']} UTC</div>
-    <div>🎯 <b>Target Region:</b> <code>{headers[-1]['noaa_ar']}</code></div>
-    <div>📡 <b>Downlink SNR:</b> 99.4% [SIMULATED]</div>
-    <div>❄️ <b>CCD Temp:</b> -40.2°C [SIMULATED]</div>
+<div class="telemetry-bar font-mono">
+    <div>🕒 <span style="color:#7f93ad;">OBS:</span> <span class="telemetry-val" style="color:#ffffff;">{headers[-1]['date_obs']} UTC</span></div>
+    <div>🎯 <span style="color:#7f93ad;">TARGET:</span> <span class="badge-cyan">{headers[-1]['noaa_ar']}</span></div>
+    <div>📡 <span style="color:#7f93ad;">SNR:</span> <span class="telemetry-val" style="color:#00e5ff;">99.4%</span> <span style="font-size:0.7rem; color:#7f93ad;">[SIM]</span></div>
+    <div>❄️ <span style="color:#7f93ad;">CCD:</span> <span class="telemetry-val" style="color:#00e676;">-40.2°C</span> <span style="font-size:0.7rem; color:#7f93ad;">[SIM]</span></div>
     <div>{data_badge_html}</div>
 </div>
 """, unsafe_allow_html=True)
@@ -448,38 +593,25 @@ with tab1_control:
     with col_right:
         st.markdown("#### ⚡ 24h & 48h Calibrated Flare Eruption Forecast")
 
-        # Live-feel gauge chart for 24h M/X probability
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=flare_prob_24h,
-            domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "24h Major Flare Probability (M/X)", 'font': {'color': 'white', 'size': 14}},
-            number={'suffix': "%", 'font': {'color': '#00e5ff', 'size': 28}},
-            gauge={
-                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "white"},
-                'bar': {'color': "#00e5ff", 'thickness': 0.3},
-                'bgcolor': "rgba(13, 22, 45, 0.8)",
-                'borderwidth': 1,
-                'bordercolor': "rgba(0, 229, 255, 0.3)",
-                'steps': [
-                    {'range': [0, 30], 'color': "rgba(0, 230, 118, 0.25)"},
-                    {'range': [30, 55], 'color': "rgba(255, 179, 0, 0.25)"},
-                    {'range': [55, 100], 'color': "rgba(255, 51, 75, 0.35)"}
-                ],
-                'threshold': {
-                    'line': {'color': "#ff334b", 'width': 3},
-                    'thickness': 0.75,
-                    'value': alert_sensitivity
-                }
-            }
-        ))
-        fig_gauge.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=200,
-            margin=dict(l=20, r=20, t=30, b=10)
-        )
-        st.plotly_chart(fig_gauge, use_container_width=True)
+        # Hero Headline Risk Metric Card (Single largest, boldest number on page)
+        risk_color = "#ff334b" if flare_prob_24h >= alert_sensitivity else ("#ffb300" if flare_prob_24h >= (alert_sensitivity * 0.6) else "#00e676")
+        risk_badge = "badge-red" if flare_prob_24h >= alert_sensitivity else ("badge-demo" if flare_prob_24h >= (alert_sensitivity * 0.6) else "badge-real")
+        risk_label = "CRITICAL RISK" if flare_prob_24h >= alert_sensitivity else ("ELEVATED WATCH" if flare_prob_24h >= (alert_sensitivity * 0.6) else "NOMINAL / LOW RISK")
+
+        st.markdown(f"""
+        <div class="space-card" style="border-top: 3px solid {risk_color}; margin-bottom: 14px; text-align: center; padding: 18px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <span style="font-size: 0.74rem; font-weight: 700; color: #7f93ad; letter-spacing: 0.06em; text-transform: uppercase;">24H FORECAST HORIZON</span>
+                <span class="{risk_badge}">{risk_label}</span>
+            </div>
+            <div class="font-mono" style="font-size: 3.4rem; font-weight: 800; color: {risk_color}; line-height: 1.05; margin: 8px 0; letter-spacing: -0.03em;">
+                {flare_prob_24h:.1f}<span style="font-size: 1.9rem; font-weight: 600; opacity: 0.85;">%</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #9bb0c9;">
+                Calibrated Major Solar Eruption Probability (<b style="color: #ffffff;">M/X-Class</b>)
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -518,9 +650,9 @@ with tab1_control:
             st.markdown(f"""
             <div class="space-card-alert">
                 <span class="badge-red">CONDITION RED // CRITICAL</span>
-                <h3 style="color:#ff334b; margin:4px 0;">⚠️ HIGH-INTENSITY {pred_flare_class.upper()} IMMINENT</h3>
-                <p style="margin:2px 0; font-size:0.82rem;">Learned Peak Flux: <b>{est_peak_flux}</b> | Horizon: <b>24-48 Hours</b></p>
-                <p style="margin:0; font-size:0.78rem; color:#ffccd2;">
+                <h3 style="color:#ff334b; margin:6px 0 4px 0; font-size:1.15rem; font-weight:700;">⚠️ HIGH-INTENSITY {pred_flare_class.upper()} IMMINENT</h3>
+                <p style="margin:2px 0; font-size:0.82rem;" class="font-mono">Learned Peak Flux: <b>{est_peak_flux}</b> | Horizon: <b>24-48 Hours</b></p>
+                <p style="margin:4px 0 0 0; font-size:0.80rem; color:#ffccd2; line-height:1.45;">
                     <b>Action:</b> Orient NavIC/GSAT solar panels, broadcast GIC advisory to PGCIL 765kV grid.
                 </p>
             </div>
@@ -529,9 +661,9 @@ with tab1_control:
             st.markdown(f"""
             <div class="space-card-watch">
                 <span class="badge-demo">CONDITION AMBER // WATCH</span>
-                <h3 style="color:#ffb300; margin:4px 0;">⚠️ MODERATE {pred_flare_class.upper()} EXPECTED</h3>
-                <p style="margin:2px 0; font-size:0.82rem;">Learned Peak Flux: <b>{est_peak_flux}</b></p>
-                <p style="margin:0; font-size:0.78rem; color:#ffe082;">
+                <h3 style="color:#ffb300; margin:6px 0 4px 0; font-size:1.15rem; font-weight:700;">⚠️ MODERATE {pred_flare_class.upper()} EXPECTED</h3>
+                <p style="margin:2px 0; font-size:0.82rem;" class="font-mono">Learned Peak Flux: <b>{est_peak_flux}</b></p>
+                <p style="margin:4px 0 0 0; font-size:0.80rem; color:#ffe082; line-height:1.45;">
                     <b>Action:</b> Monitor polar aviation HF comms, track active region complexity.
                 </p>
             </div>
@@ -540,9 +672,9 @@ with tab1_control:
             st.markdown(f"""
             <div class="space-card-safe">
                 <span class="badge-real">CONDITION GREEN // NOMINAL</span>
-                <h3 style="color:#00e676; margin:4px 0;">✅ NOMINAL SPACE WEATHER</h3>
-                <p style="margin:2px 0; font-size:0.82rem;">Learned Class: <b>{pred_flare_class}</b> | Flux: <b>{est_peak_flux}</b></p>
-                <p style="margin:0; font-size:0.78rem; color:#c8e6c9;">
+                <h3 style="color:#00e676; margin:6px 0 4px 0; font-size:1.15rem; font-weight:700;">✅ NOMINAL SPACE WEATHER</h3>
+                <p style="margin:2px 0; font-size:0.82rem;" class="font-mono">Learned Class: <b>{pred_flare_class}</b> | Flux: <b>{est_peak_flux}</b></p>
+                <p style="margin:4px 0 0 0; font-size:0.80rem; color:#c8e6c9; line-height:1.45;">
                     <b>Action:</b> All space assets and power grids operate under baseline parameters.
                 </p>
             </div>
@@ -686,14 +818,16 @@ with tab4_impact:
 
     st.markdown("#### 🇮🇳 Indian National Infrastructure Action Directives (SIH Focus)")
     for d in directives:
-        color = "#ff334b" if d["level"] == "RED" else ("#ffb300" if d["level"] == "AMBER" else "#00e676")
+        card_class = "space-card-alert" if d["level"] == "RED" else ("space-card-watch" if d["level"] == "AMBER" else "space-card-safe")
+        badge_class = "badge-red" if d["level"] == "RED" else ("badge-demo" if d["level"] == "AMBER" else "badge-real")
+        status_text_color = "text-red" if d["level"] == "RED" else ("text-amber" if d["level"] == "AMBER" else "text-green")
         st.markdown(f"""
-        <div class="space-card" style="border-left: 4px solid {color}; margin-bottom: 8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <b style="color:{color};">{d['sector']}</b>
-                <span class="badge-cyan">{d['status']}</span>
+        <div class="{card_class}" style="margin-bottom: 12px; border-left-width: 4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                <b class="{status_text_color}" style="font-size:0.95rem;">{d['sector']}</b>
+                <span class="{badge_class}">{d['status']}</span>
             </div>
-            <p style="margin:4px 0 0 0; font-size:0.85rem; color:#dbe4ee;">{d['directive']}</p>
+            <p style="margin:0; font-size:0.85rem; color:#dbe4ee; line-height: 1.5;">{d['directive']}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -715,10 +849,10 @@ with tab5_telemetry:
             <div style="font-size:0.85rem; line-height: 1.8;">
                 <div>📍 <b>Trajectory:</b> Sun-Earth L1 Halo Orbit (1.5M km from Earth)</div>
                 <div>📷 <b>SUIT Filter:</b> Mg II k 279.6 nm Narrowband</div>
-                <div>❄️ <b>Detector Temp:</b> -40.2 °C [SIMULATED]</div>
+                <div>❄️ <b>Detector Temp:</b> <span class="font-mono text-cyan">-40.2 °C</span> <span class="badge-demo" style="padding:1px 6px; font-size:0.68rem;">[SIMULATED]</span></div>
                 <div>📡 <b>Ground Station:</b> ISSDC Bylalu (32m Deep Space Network)</div>
-                <div>📶 <b>Link Signal Quality:</b> 99.4% Carrier-to-Noise Ratio [SIMULATED]</div>
-                <div>💾 <b>Telemetry Buffer:</b> 4 Contiguous Frames Synchronized</div>
+                <div>📶 <b>Link Signal Quality:</b> <span class="font-mono text-green">99.4%</span> <span class="badge-demo" style="padding:1px 6px; font-size:0.68rem;">[SIMULATED]</span></div>
+                <div>💾 <b>Telemetry Buffer:</b> <span class="font-mono text-cyan">4 Contiguous Frames Synchronized</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -851,10 +985,16 @@ Generated by Aditya-L1 Deep Learning Warning System | SIH 2026
     hr_event = st.selectbox("Select Benchmark Event to Replay:", list(historical_events.keys()))
     h_info = historical_events[hr_event]
 
+    outcome_badge = "badge-red" if "X" in h_info['actual_outcome'] else ("badge-demo" if "M" in h_info['actual_outcome'] else "badge-real")
+    outcome_color = "text-red" if "X" in h_info['actual_outcome'] else ("text-amber" if "M" in h_info['actual_outcome'] else "text-green")
+
     st.markdown(f"""
     <div class="space-card" style="border-left: 4px solid #00e5ff;">
-        <h5 style="margin:0; color:#00e5ff;">Verified Ground-Truth Record</h5>
-        <p style="margin:4px 0; font-size:0.85rem;"><b>Active Region:</b> {h_info['ar']} | <b>Date:</b> {h_info['date']} | <b>Outcome:</b> <span style="color:#ff334b;">{h_info['actual_outcome']}</span></p>
-        <p style="margin:2px 0; font-size:0.82rem; color:#9bb0c9;"><b>Recorded Impact:</b> {h_info['impact']}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <h5 class="text-cyan" style="margin:0; font-size:0.95rem; font-weight:700;">Verified Ground-Truth Record</h5>
+            <span class="{outcome_badge}">BENCHMARK REPLAY</span>
+        </div>
+        <p style="margin:4px 0; font-size:0.85rem;" class="font-mono"><b>Active Region:</b> {h_info['ar']} | <b>Date:</b> {h_info['date']} | <b>Outcome:</b> <span class="{outcome_color}" style="font-weight:700;">{h_info['actual_outcome']}</span></p>
+        <p style="margin:4px 0 0 0; font-size:0.82rem; color:#9bb0c9;"><b>Recorded Impact:</b> {h_info['impact']}</p>
     </div>
     """, unsafe_allow_html=True)
