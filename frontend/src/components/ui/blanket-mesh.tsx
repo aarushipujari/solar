@@ -274,10 +274,10 @@ export const BlanketMesh = ({
         }
       }
 
-      // 6. Draw Mesh Lines with 3D Depth Curve
-      const defaultLineColor = "rgba(0, 229, 255, 0.18)";
+      // 6. Draw Mesh Lines with 3D Depth Curve (Subtle and non-distracting)
+      const defaultLineColor = "rgba(0, 229, 255, 0.08)";
 
-      ctx.lineWidth = 1.1;
+      ctx.lineWidth = 0.8;
 
       // Horizontal lines
       for (let r = 0; r < rows; r++) {
@@ -303,21 +303,21 @@ export const BlanketMesh = ({
         ctx.stroke();
       }
 
-      // 7. Draw Deeply Sunk & Glowing Tension Nodes
+      // 7. Draw Deeply Sunk & Gentle Subtle Tension Nodes (Less bright & non-intrusive)
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const p = points[r][c];
           const disp = Math.hypot(p.x - p.originX, p.y - p.originY, p.z);
 
-          if (disp > 1.2) {
-            const glowAlpha = Math.min(1.0, disp / 7);
+          if (disp > 1.8) {
+            const glowAlpha = Math.min(0.35, disp / 25);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, Math.min(5.0, 1.2 + disp * 0.22), 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, Math.min(2.0, 0.7 + disp * 0.06), 0, Math.PI * 2);
             ctx.fillStyle = isFlareActive
-              ? `rgba(255, 82, 82, ${glowAlpha})`
-              : `rgba(0, 229, 255, ${glowAlpha})`;
-            ctx.shadowBlur = disp * 2;
-            ctx.shadowColor = isFlareActive ? "#ff334b" : "#00e5ff";
+              ? `rgba(244, 63, 94, ${glowAlpha})`
+              : `rgba(56, 189, 248, ${glowAlpha})`;
+            ctx.shadowBlur = Math.min(3, disp * 0.3);
+            ctx.shadowColor = isFlareActive ? "#f43f5e" : "#38bdf8";
             ctx.fill();
             ctx.shadowBlur = 0;
           }
