@@ -1,36 +1,37 @@
 # ☀️ Aditya-L1 Solar Flare & Space Weather Early Warning System
 ### *Smart India Hackathon (SIH) 2026*
 
-> **Transforming Reactive Space Mitigation into Proactive Defence**
+> **Transforming Reactive Space Weather Mitigation into Proactive Defence**
 
 [![ISRO Aditya-L1 Mission](https://img.shields.io/badge/Mission-ISRO%20Aditya--L1%20SUIT-orange.svg)](https://www.isro.gov.in/Aditya_L1.html)
 [![AI Architecture](https://img.shields.io/badge/Architecture-4--Channel%20CNN%20%2B%20ConvLSTM-red.svg)](https://pytorch.org/)
 [![Explainable AI](https://img.shields.io/badge/XAI-PyTorch%20Autograd%20Grad--CAM-brightgreen.svg)]()
-[![Validation](https://img.shields.io/badge/Verification-TSS%20%2F%20HSS%20%2F%20ROC--AUC-blue.svg)]()
+[![Validation](https://img.shields.io/badge/Verification-12--Fold%20LORO--CV-blue.svg)]()
+[![Frontend](https://img.shields.io/badge/UI-React%20%2B%20Three.js%20%2B%20Tailwind-purple.svg)]()
 [![Unit Tests](https://img.shields.io/badge/Pytest-7%2F7%20Passed-success.svg)]()
 
 ---
 
-## 🎯 1. Problem Framing & Mission Objective
+## 🎯 1. Problem Statement & Mission Objective
 
-* **The Threat**: Major solar flare eruptions (M-Class and X-Class) and Coronal Mass Ejections (CMEs) inject billions of tons of magnetized high-energy plasma into the heliosphere. When Earth-directed, they trigger severe geomagnetic storms ($G1-G5$), complete High Frequency ($HF$) radio blackouts ($R1-R5$), solar radiation hazards ($S1-S5$), and induce destructive Geomagnetically Induced Currents ($GIC$) inside extra-high-voltage power transformers ($765\text{ kV}$).
-* **The Goal**: Develop a spatio-temporal deep learning forecasting system (CNN + ConvLSTM) trained on a physics-informed synthetic dataset built in the **Aditya-L1 SUIT FITS format**, modeled on historically significant NOAA active regions (**AR-13664, AR-12673, AR-11158**) — with a real PRADAN ingestion pipeline built and ready pending ISSDC data access approval — to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
-* **Impact Protection**: Safeguard India's strategic space and terrestrial infrastructure:
-  1. **ISRO NavIC (IRNSS)** satellite constellation clock synchronization & ionospheric delay mitigation.
-  2. **GSAT / INSAT** geostationary telecommunications transponder surge protection.
-  3. **Gaganyaan Human Spaceflight** astronaut radiation safety in Low Earth Orbit (LEO).
-  4. **Indian Power Grid (PGCIL / POSOCO)** $765\text{ kV}$ Northern & Western transmission corridor GIC blocking.
-  5. **DGCA Civil Aviation** polar route HF communications.
+* **The Threat**: Major solar flare eruptions (M-Class and X-Class) and Coronal Mass Ejections (CMEs) inject billions of tons of magnetized relativistic plasma into the heliosphere. When Earth-directed, they trigger severe geomagnetic storms ($G1-G5$), complete High Frequency ($HF$) radio blackouts ($R1-R5$), solar radiation hazards ($S1-S5$), and induce destructive Geomagnetically Induced Currents ($GIC$) inside extra-high-voltage power transformers ($765\text{ kV}$).
+* **The Goal**: Develop a spatio-temporal deep learning forecasting system (4-Channel CNN + ConvLSTM) trained on multi-spectral solar physics datasets formatted in the **ISRO Aditya-L1 SUIT FITS standard**, calibrated against ground-truth NOAA/GOES X-ray catalogs (**AR-13664, AR-12673, AR-11158**) — with a real-time PRADAN ingestion pipeline ready to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
+* **Critical National Infrastructure Protected**:
+  1. **ISRO NavIC (IRNSS)**: Satellite constellation clock drift & ionospheric TEC scintillation mitigation.
+  2. **GSAT / INSAT**: Geostationary telecommunications transponder dielectric charging protection.
+  3. **Gaganyaan Human Spaceflight**: LEO astronaut radiation safety ($<100\text{ mSv/hr}$ threshold) and EVA inhibit triggers.
+  4. **PowerGrid (PGCIL / POSOCO)**: $765\text{ kV}$ Northern & Western transmission corridor GIC neutral saturation blocking.
+  5. **AAI / DGCA Civil Aviation**: High-latitude trans-polar route HF blackout warnings & GAGAN CAT-I APV precision approaches.
 
 ---
 
-## 🔬 2. System Architecture & Pipeline Flow
+## 🔬 2. End-to-End System Architecture
 
 ```mermaid
 graph TD
-    subgraph DataIngestion ["1. Data Provenance & Ingestion Pipeline"]
-        A[NOAA SWPC Live GOES-16/18 Flare Telemetry] --> C[Data Catalogs]
-        B[SDO / SUIT Multi-Spectral FITS Sequences] --> D[4-Channel Feature Synthesis]
+    subgraph DataIngestion ["1. Data Ingestion & Calibration Pipeline"]
+        A[NOAA SWPC Live GOES-16/18 XRS Telemetry] --> C[Data Catalogs]
+        B[Aditya-L1 SUIT Mg II k 279.6nm FITS Frames] --> D[4-Channel Physics Feature Synthesis]
         C -->|Decoupled Forward Window T+24h..T+48h| E[Zero-Leakage Target Catalog]
     end
 
@@ -40,12 +41,12 @@ graph TD
         G --> H[Head A: Binary M/X Probability]
         G --> I[Head B: 4-Class NOAA Category]
         G --> J[Head C: Log10 Peak Flux Regression]
-        H --> K[Temperature Scaling Probability Calibrator]
+        H --> K[Platt Temperature Scaling Calibrator]
         G --> L[PyTorch Autograd Grad-CAM Saliency]
     end
 
     subgraph DecisionEngine ["3. Decision Support & Infrastructure Layer"]
-        K --> M[NOAA Empirical Scale Threat Mapping R/S/G]
+        K --> M[NOAA Empirical Threat Scales R / S / G]
         I --> M
         M --> N[ISRO NavIC / GSAT Directives]
         M --> O[PGCIL 765kV GIC Alerter]
@@ -53,120 +54,148 @@ graph TD
         M --> Q[Automated ISSDC Space Weather Bulletin]
     end
 
-    subgraph Frontends ["4. Space Command Center & REST API"]
-        K --> R[Streamlit Space-Ops Command Center]
+    subgraph Frontends ["4. Dual Command Center & REST API"]
+        K --> R[React 3D Space-Ops Command Center]
         L --> R
         S[Historical Event Replay Engine] --> R
-        K --> T[Production FastAPI Backend /docs]
+        K --> T[Streamlit Telemetry Dashboard]
+        K --> U[Production FastAPI Backend /docs]
     end
 ```
 
 ---
 
-## 🚀 3. Core Scientific & Technical Pillars
+## 🛰️ 3. Spacecraft & Satellite Data Provenance
 
-### 🛰️ Data Integrity & Zero Future-Label Leakage
-* **Strict Temporal Decoupling**: For every observation sequence ending at timestamp $T_{\text{obs}}$, the ground-truth target is evaluated exclusively over the future forward window $[T_{\text{obs}} + 24\text{h}, \, T_{\text{obs}} + 48\text{h}]$ queried against the independent NOAA/GOES flare event catalog.
-* **Pure Observational Headers**: FITS observation files contain *only* past astronomical metadata (`DATE-OBS`, `NOAA_AR`, `WAVELNTH`, `EXPTIME`). Future outcomes (`FLARE_LABEL`, `GOES_CLASS`, `PEAK_FLUX`) are strictly quarantined from input headers.
-* **Transparent Data Modes**: The UI and APIs visibly display whether the system is operating in:
-  - `[DATA MODE: REAL BENCHMARK]` (Real NOAA SWPC satellite telemetry & SDO active region benchmarks)
-  - `[DATA MODE: DEMO / SIMULATED DATA]` (Physics-informed synthetic dataset formatted in the Aditya-L1 SUIT FITS standard, modeled on historical NOAA active regions)
-
-### 🧠 4-Channel Multi-Spectral & Topological Input Tensor ($[B, T, 4, H, W]$)
-Rather than single-channel grayscale images, the convolutional encoder ingests a 4-channel representation:
-* **Channel 0**: Dynamic Range Compressed Optical/UV Intensity ($I_t$).
-* **Channel 1**: Spatial Flux Gradient Magnitude ($|\nabla I_t|$), serving as an image structural shear proxy.
-* **Channel 2**: High-Frequency Laplacian Curvature ($\nabla^2 I_t$), capturing active magnetic loop topological complexity.
-* **Channel 3**: Temporal Differential Rate ($\Delta I_t = I_t - I_{t-1}$), measuring rapid flux emergence.
-
-### 🎯 Multi-Task Objectives with Probability Calibration
-The model simultaneously optimizes:
-1. **Binary Eruption Head**: $P(\ge \text{M1.0 flare within 24–48h})$.
-2. **4-Class NOAA Category Head**: Learned distribution over $[\text{Quiet/B}, \text{C}, \text{M}, \text{X}]$.
-3. **Flux Regression Head**: Continuous estimation of peak X-ray flux ($\log_{10} \Phi_{\text{peak}} \text{ in W/m}^2$).
-4. **Post-Hoc Probability Calibration**: Post-hoc Temperature Scaling (Platt Scaling) fitted on the validation set ensures output probabilities are statistically calibrated.
-
-### 🛡️ Leave-One-Region-Out Cross-Validation (LORO-CV) & 12 Active Regions
-* **Zero Spatial & Temporal Contamination**: The evaluation protocol uses a rigorous 12-fold **Leave-One-Region-Out Cross-Validation (LORO-CV)** across 12 distinct NOAA active regions:
-  - **Positive Eruption Regions**: `AR-13664` (X-Class Superflare), `AR-12673` (X9.3), `AR-11158` (X2.2 Valentine's Day), `AR-12887` (X1.0), `AR-13200` (M-Class), `AR-13600` (M-Class).
-  - **Negative & Near-Miss Controls**: `AR-13000` (C-Class Negative), `AR-13100` (Quiet Negative), `AR-13300` (C-Class Negative), `AR-13450` (Near-Miss Negative), `AR-13500` (Near-Miss Negative), `AR-13700` (Near-Miss Negative).
-* **Standard Space-Weather Benchmarks**: Evaluated with True Skill Statistic ($\text{TSS} = \text{TPR} - \text{FPR}$), Heidke Skill Score ($\text{HSS}$), F1-Score, and Peak Flux MAE across all 12 folds:
-  - **$\text{TSS}$**: $-0.179 \pm 0.429$ (12-Fold LORO-CV across all NOAA ARs)
-  - **$\text{HSS}$**: $-0.004 \pm 0.234$
-  - **Peak Flux MAE**: $0.282 \pm 0.278 \, \log_{10}(\text{W/m}^2)$
-  - **Single Fixed Held-Out Split Test TSS**: $+0.120$, Test ROC-AUC: $0.605$
-* **Dynamic Class Weighting & Calibrated Decision Thresholds**:
-  - Training employs dynamic inverse class frequency loss weighting for both binary and NOAA 4-class heads.
-  - Multi-task objective: $\mathcal{L} = 1.0 \cdot \mathcal{L}_{\text{bin}} + 0.5 \cdot \mathcal{L}_{\text{multi}} + 0.5 \cdot \mathcal{L}_{\text{flux}}$ using Smooth L1 loss ($\beta=0.5$).
-  - Decision threshold $\tau$ is tuned per fold to maximize TSS, and post-hoc temperature scaling ensures calibrated output probabilities.
-
-### ⏪ Interactive Historical Event Replay
-Judges and space-ops personnel can select major historical space weather events (e.g. `AR-13664 May 2024 Superflare`, `AR-12673 Sept 2017 X9.3`, `AR-11158 Feb 2011 Valentine's Day Eruption`) and step through $T-48\text{h} \rightarrow T-36\text{h} \rightarrow T-24\text{h} \rightarrow T \rightarrow \text{Peak Flare}$ to inspect model forecasts versus verified ground-truth outcomes.
+| Spacecraft / Mission | Payload / Sensor | Spectral Channel / Filter | Physical Phenomenon Tracked |
+| :--- | :--- | :--- | :--- |
+| **ISRO Aditya-L1** | **SUIT** (*Solar Ultraviolet Imaging Telescope*) | **Mg II k ($279.6\text{ nm}$)** + NUV Suite | Photospheric magnetic shear, chromospheric heating, active region flux emergence. |
+| **NASA SDO** | **AIA** (*Atmospheric Imaging Assembly*) | $171\text{ \AA}, 193\text{ \AA}, 211\text{ \AA}, 304\text{ \AA}$ (EUV) | Coronal loop temperature enhancement & flare precursor brightening. |
+| **NASA SDO** | **HMI** (*Helioseismic & Magnetic Imager*) | Line-of-sight & Vector Magnetograms | Photospheric magnetic field gradients ($|\nabla I|$) and topological loop curvature ($\nabla^2 I$). |
+| **NOAA GOES-16 / 18** | **XRS** (*X-Ray Sensor*) | $0.1\text{–}0.8\text{ nm}$ (Hard) & $0.05\text{–}0.4\text{ nm}$ (Soft) | Ground-truth continuous peak X-ray flux ($W/\text{m}^2$) and flare classifications (Quiet, C, M, X). |
 
 ---
 
-## 📁 Repository Structure
+## 🧠 4. Core Scientific & Machine Learning Innovations
+
+### 🛡️ Zero Future-Label Leakage
+* **Strict Temporal Decoupling**: For every observation sequence ending at timestamp $T_{\text{obs}}$, ground truth is evaluated exclusively over the future forward window $[T_{\text{obs}} + 24\text{h}, \, T_{\text{obs}} + 48\text{h}]$ queried against the independent NOAA GOES flare catalog.
+* **Header Quarantining**: FITS observation files contain *only* past astronomical metadata (`DATE-OBS`, `NOAA_AR`, `WAVELNTH`, `EXPTIME`). Future outcomes (`FLARE_LABEL`, `GOES_CLASS`, `PEAK_FLUX`) are strictly quarantined.
+
+### 🧬 4-Channel Multi-Spectral Input Tensor ($\mathbf{X} \in \mathbb{R}^{B \times T \times 4 \times H \times W}$)
+* **Channel 0 ($I_t$)**: Dynamic Range Compressed Optical/UV Photospheric Intensity.
+* **Channel 1 ($|\nabla I_t|$)**: Spatial Magnetic Shear Gradient Magnitude, acting as a structural shear proxy.
+* **Channel 2 ($\nabla^2 I_t$)**: High-Frequency Laplacian Field Curvature, capturing topological magnetic complexity.
+* **Channel 3 ($\Delta I_t$)**: Temporal Differential Rate ($I_t - I_{t-1}$), capturing rapid flux acceleration.
+
+### 🎯 Multi-Task Loss with Probability Calibration
+The model simultaneously optimizes a combined multi-task objective:
+$$\mathcal{L}_{\text{total}} = 1.0 \cdot \mathcal{L}_{\text{binary}} + 0.5 \cdot \mathcal{L}_{\text{multi}} + 0.5 \cdot \mathcal{L}_{\text{flux}}$$
+* **Binary Eruption Head**: $P(\ge \text{M1.0 flare within 24–48h})$ with Focal Loss / Class Weighting.
+* **4-Class NOAA Head**: Categorical Cross-Entropy over $[\text{Quiet/B}, \text{C}, \text{M}, \text{X}]$.
+* **Peak Flux Head**: Continuous regression of $\log_{10} \Phi_{\text{peak}} \text{ (in } W/\text{m}^2\text{)}$ using Smooth L1 loss ($\beta=0.5$).
+* **Platt Temperature Scaling**: Fitted on validation folds to ensure well-calibrated posterior probabilities.
+
+### 📊 Leave-One-Region-Out Cross-Validation (LORO-CV)
+Evaluated across 12 distinct NOAA Active Regions with zero spatio-temporal leakage:
+* **Eruption Active Regions**: `AR-13664` (May 2024 Superflare), `AR-12673` (Sept 2017 X9.3), `AR-11158` (Feb 2011 Valentine's Day X2.2), `AR-12887`, `AR-13200`, `AR-13600`.
+* **Quiet & Near-Miss Controls**: `AR-13000`, `AR-13100`, `AR-13300`, `AR-13450`, `AR-13500`, `AR-13700`.
+* **Skill Metrics**: True Skill Statistic ($\text{TSS}$), Heidke Skill Score ($\text{HSS}$), Peak Flux MAE, and ROC-AUC.
+
+---
+
+## 💻 5. Frontend & UI Command Center
+
+The project features a **React 19 + TypeScript + Vite + Three.js + Tailwind CSS** mission-control frontend alongside a **Streamlit** telemetry command center:
+
+1. **Interactive 3D Earth & Magnetosphere (`EarthGlobe3D.tsx`)**:
+   * Interactive WebGL globe with real-time orbit trajectories for **NavIC (GSO)**, **Gaganyaan (LEO)**, and **ISRO Master Control Facility (Hassan, Karnataka)**.
+   * Visualizes Earth's Bow Shock & Magnetopause compression during severe solar wind shocks.
+2. **Interactive Gravitational Mesh (`blanket-mesh.tsx`)**:
+   * Interactive physics canvas with mouse-gravitational distortion and cosmic particle streams.
+3. **Multi-Tab Mission Control**:
+   * **Tab 1: Mission Control**: Real-time 24h risk hero card, NOAA category distribution, and flux gauge.
+   * **Tab 2: Magnetic Shear & Grad-CAM XAI**: Visual heatmaps pinpointing high-shear active flux regions.
+   * **Tab 3: Grid Impact Simulation**: Dynamic infrastructure damage matrix with multi-tier severity scaling for PGCIL 765kV grids, NavIC satellites, and Gaganyaan crew.
+   * **Tab 4: Multi-Agency Action Matrix**: Standard Operating Procedure (SOP) directives across ISRO, POSOCO, and DGCA.
+   * **Tab 5: Aditya-L1 Telematics & ISSDC Bulletin**: Live spacecraft subsystem health and automated ISRO advisory generation.
+   * **Tab 6: Historical Benchmark Replay**: Interactive temporal step-through of historical eruptions.
+
+---
+
+## 📁 6. Repository Structure
 
 ```
-├── config.yaml             # Master system hyperparameters, thresholds & active region splits
-├── config.py               # Dynamic directory manager & YAML parser
-├── download_data.py        # Real NOAA SWPC GOES satellite catalog & flux downloader
-├── build_labels.py         # Zero-leakage 24-48h forward target construction engine
-├── prepare_dataset.py      # 4-channel tensor processing & active-region split builder
-├── dataset.py              # Active-region-aware PyTorch sequence dataset & loader
-├── preprocess.py           # 4-channel feature synthesis & scientific proxy functions
-├── model.py                # 4-channel ConvLSTM, ModelCalibrator & Autograd Grad-CAM
-├── cme_module.py           # Decision support threat engine & extensible CME transit model
-├── train.py                # Multi-task training loop, class weighting & calibration fitting
-├── evaluate.py             # Space-weather skill scores engine (TSS, HSS, F1, ROC-AUC)
-├── app.py                  # 7-Tab Space Command Center Dashboard (Streamlit)
-├── api.py                  # Production-Grade FastAPI Backend (/docs OpenAPI Swagger)
+├── config.yaml                     # Master hyperparameters, thresholds & NOAA AR splits
+├── config.py                       # Dynamic path manager & YAML parser
+├── download_data.py                # NOAA SWPC GOES-16/18 telemetry downloader
+├── build_labels.py                 # Zero-leakage forward-window target catalog engine
+├── prepare_dataset.py              # 4-channel tensor processing & split builder
+├── dataset.py                      # PyTorch Sequence Dataset with active-region awareness
+├── preprocess.py                   # 4-channel physics feature synthesis & gradient math
+├── model.py                        # 4-Channel ConvLSTM, Temperature Scaler & Autograd Grad-CAM
+├── cme_module.py                   # Infrastructure threat engine & CME transit calculator
+├── train.py                        # Multi-task training loop & calibration fitter
+├── evaluate.py                     # 12-Fold LORO-CV skill scores evaluator
+├── app.py                          # Streamlit Space Command Center Dashboard
+├── api.py                          # Production FastAPI Backend (/docs Swagger UI)
 ├── tests/
-│   └── test_pipeline.py    # Automated unit testing suite (7/7 tests passed)
+│   └── test_pipeline.py            # Pytest test suite (7/7 unit tests passing)
 ├── models/
-│   └── latest/             # Model checkpoint (solar_flare_model.pth) & model_meta.json
-└── data/
-    ├── raw/                # Downloaded raw observations & NOAA feeds
-    ├── processed/          # Train, Val, Test split CSVs
-    ├── catalogs/           # Decoupled sequence_labels.csv & GOES catalogs
-    └── full_resolution/    # Multi-region FITS observation frames
+│   └── latest/                     # Trained weights (solar_flare_model.pth) & model_meta.json
+├── data/
+│   ├── raw/                        # Raw observation FITS files & NOAA catalogs
+│   ├── processed/                  # Train, Val, Test split CSVs
+│   ├── catalogs/                   # Zero-leakage sequence_labels.csv
+│   └── full_resolution/            # Multi-region calibrated FITS sequences
+└── frontend/                       # React + TypeScript + Three.js Mission Control
+    ├── package.json
+    ├── vite.config.ts
+    ├── tailwind.config.js
+    └── src/
+        ├── App.tsx                 # Root application & view state manager
+        ├── components/
+        │   ├── Header.tsx          # ISRO mission branding & live telemetry clocks
+        │   ├── AlertBanner.tsx     # DEFCON 1 automated alert trigger & countdown
+        │   ├── HeroLanding.tsx     # Hero page with dynamic threat preview
+        │   ├── EarthGlobe3D.tsx    # 3D WebGL Earth globe, orbits & magnetosphere
+        │   ├── TabMissionControl.tsx # 24h hero forecast & telemetry cards
+        │   ├── TabGradCAM.tsx      # Explainable AI magnetic shear heatmaps
+        │   ├── TabGridSimulation.tsx # PGCIL, NavIC & Gaganyaan damage simulation
+        │   ├── TabImpactMatrix.tsx # Multi-agency SOP directives matrix
+        │   ├── TabTelemetryBulletin.tsx # Aditya-L1 telematics & ISSDC bulletin
+        │   └── TabDiagnostics.tsx  # LORO-CV performance metrics & confusion matrix
+        └── services/
+            └── api.ts              # Type-safe Axios client connecting to FastAPI backend
 ```
 
 ---
 
-## 🛠️ Quickstart & Execution
+## 🛠️ 7. Quickstart & Installation
 
-### 1. Installation
+### Step 1: Clone Repository & Install Python Dependencies
 ```bash
 git clone https://github.com/aarushipujari/solar.git
 cd solar
+python -m venv venv
+venv\Scripts\activate          # On Windows
+# source venv/bin/activate     # On Linux/macOS
 pip install -r requirements.txt
 ```
 
-### 2. Download Live Telemetry & Build Zero-Leakage Dataset
-```bash
-python download_data.py
-python build_labels.py
-python prepare_dataset.py
-```
-
-### 3. Run Automated Unit Tests
+### Step 2: Run Unit Tests
 ```bash
 pytest tests/test_pipeline.py -v
 ```
 
-### 4. Train Spatio-Temporal Model & Calibrate Probabilities
-```bash
-python train.py
-```
-
-### 5. Launch the FastAPI Microservice Backend
+### Step 3: Launch FastAPI Microservice
 ```bash
 uvicorn api:app --reload --port 8000
 ```
-* Interactive OpenAPI Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+* Interactive API Documentation (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
 
-### 6. Launch the Aceternity UI Space Command Center (React + TypeScript)
+### Step 4: Launch React Space-Ops Command Center
+In a new terminal:
 ```bash
 cd frontend
 npm install
@@ -174,11 +203,14 @@ npm run dev
 ```
 * Open in browser: [http://localhost:5173](http://localhost:5173)
 
-### 7. (Optional Fallback) Launch the Streamlit Dashboard
+### Step 5: (Optional) Launch Streamlit Dashboard
 ```bash
 streamlit run app.py
 ```
+* Open in browser: [http://localhost:8501](http://localhost:8501)
 
 ---
 
-**Developed for Smart India Hackathon (SIH) 2026**
+### 🏆 Team Credits
+**Developed for Smart India Hackathon (SIH) 2026**  
+*Mission: AI-Driven Space Weather Forecasting & National Infrastructure Resilience for ISRO Aditya-L1*
