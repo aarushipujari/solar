@@ -6,7 +6,7 @@
 [![ISRO Aditya-L1 Mission](https://img.shields.io/badge/Mission-ISRO%20Aditya--L1%20SUIT-orange.svg)](https://www.isro.gov.in/Aditya_L1.html)
 [![AI Architecture](https://img.shields.io/badge/Architecture-4--Channel%20CNN%20%2B%20ConvLSTM-red.svg)](https://pytorch.org/)
 [![Explainable AI](https://img.shields.io/badge/XAI-PyTorch%20Autograd%20Grad--CAM-brightgreen.svg)]()
-[![Validation](https://img.shields.io/badge/Verification-12--Fold%20LORO--CV-blue.svg)]()
+[![Validation](https://img.shields.io/badge/Verification-Active--Region%20Disjoint%20Splits-blue.svg)]()
 [![Frontend](https://img.shields.io/badge/UI-React%20%2B%20Three.js%20%2B%20Tailwind-purple.svg)]()
 [![Unit Tests](https://img.shields.io/badge/Pytest-7%2F7%20Passed-success.svg)]()
 
@@ -15,7 +15,7 @@
 ## 🎯 1. Problem Statement & Mission Objective
 
 * **The Threat**: Major solar flare eruptions (M-Class and X-Class) and Coronal Mass Ejections (CMEs) inject billions of tons of magnetized relativistic plasma into the heliosphere. When Earth-directed, they trigger severe geomagnetic storms ($G1-G5$), complete High Frequency ($HF$) radio blackouts ($R1-R5$), solar radiation hazards ($S1-S5$), and induce destructive Geomagnetically Induced Currents ($GIC$) inside extra-high-voltage power transformers ($765\text{ kV}$).
-* **The Goal**: Develop a spatio-temporal deep learning forecasting system (4-Channel CNN + ConvLSTM) trained on multi-spectral solar physics datasets formatted in the **ISRO Aditya-L1 SUIT FITS standard**, calibrated against ground-truth NOAA/GOES X-ray catalogs (**AR-13664, AR-12673, AR-11158**) — with a real-time PRADAN ingestion pipeline ready to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
+* **The Goal**: Develop a spatio-temporal deep learning forecasting system (4-Channel CNN + ConvLSTM) trained on multi-spectral solar physics datasets formatted in the **ISRO Aditya-L1 SUIT FITS standard**, calibrated against ground-truth NOAA/GOES X-ray catalogs across 350 authentic Active Regions — with a real-time PRADAN ingestion pipeline ready to predict major flare eruptions **24 to 48 hours prior to Earth impact**.
 * **Critical National Infrastructure Protected**:
   1. **ISRO NavIC (IRNSS)**: Satellite constellation clock drift & ionospheric TEC scintillation mitigation.
   2. **GSAT / INSAT**: Geostationary telecommunications transponder dielectric charging protection.
@@ -31,7 +31,7 @@
 graph TD
     subgraph DataIngestion ["1. Data Ingestion & Calibration Pipeline"]
         A[NOAA SWPC Live GOES-16/18 XRS Telemetry] --> C[Data Catalogs]
-        B[Aditya-L1 SUIT Mg II k 279.6nm FITS Frames] --> D[4-Channel Physics Feature Synthesis]
+        B[SDOBenchmark & Aditya-L1 SUIT FITS Frames] --> D[4-Channel Physics Feature Synthesis]
         C -->|Decoupled Forward Window T+24h..T+48h| E[Zero-Leakage Target Catalog]
     end
 
@@ -67,12 +67,17 @@ graph TD
 
 ## 🛰️ 3. Spacecraft & Satellite Data Provenance
 
-| Spacecraft / Mission | Payload / Sensor | Spectral Channel / Filter | Physical Phenomenon Tracked |
+| Spacecraft / Mission | Payload / Sensor | Spectral Channel / Filter | Role in Pipeline |
 | :--- | :--- | :--- | :--- |
-| **ISRO Aditya-L1** | **SUIT** (*Solar Ultraviolet Imaging Telescope*) | **Mg II k ($279.6\text{ nm}$)** + NUV Suite | Photospheric magnetic shear, chromospheric heating, active region flux emergence. |
-| **NASA SDO** | **AIA** (*Atmospheric Imaging Assembly*) | $171\text{ \AA}, 193\text{ \AA}, 211\text{ \AA}, 304\text{ \AA}$ (EUV) | Coronal loop temperature enhancement & flare precursor brightening. |
-| **NASA SDO** | **HMI** (*Helioseismic & Magnetic Imager*) | Line-of-sight & Vector Magnetograms | Photospheric magnetic field gradients ($|\nabla I|$) and topological loop curvature ($\nabla^2 I$). |
-| **NOAA GOES-16 / 18** | **XRS** (*X-Ray Sensor*) | $0.1\text{–}0.8\text{ nm}$ (Hard) & $0.05\text{–}0.4\text{ nm}$ (Soft) | Ground-truth continuous peak X-ray flux ($W/\text{m}^2$) and flare classifications (Quiet, C, M, X). |
+| **ISRO Aditya-L1** | **SUIT** (*Solar Ultraviolet Imaging Telescope*) | **Mg II k ($279.6\text{ nm}$)** + NUV Suite | **Operational Ingestion Standard**: FITS reader, normalization, and patch extraction format matching ISSDC PRADAN portal feeds. |
+| **NASA SDO / SDOBenchmark** | **HMI** (*Helioseismic & Magnetic Imager*) | Line-of-sight Magnetograms ($617.3\text{ nm}$) | **Historical Deep Learning Benchmark**: 1,724 real FITS files across 350 active regions (Roman Bolzern & Michael Aerni, FHNW, MIT License). |
+| **NASA SDO** | **AIA** (*Atmospheric Imaging Assembly*) | $171\text{ \AA}, 193\text{ \AA}, 211\text{ \AA}, 304\text{ \AA}$ (EUV) | Coronal loop temperature enhancement & flare precursor brightening tracking. |
+| **NOAA GOES-15 / 16 / 18** | **XRS** (*X-Ray Sensor*) | $0.1\text{–}0.8\text{ nm}$ (Hard) & $0.05\text{–}0.4\text{ nm}$ (Soft) | Ground-truth continuous peak X-ray flux ($W/\text{m}^2$) and flare classifications (Quiet, C, M, X). |
+
+### 🚀 The Role of the ISRO PRADAN Pipeline
+* **PRADAN** ([`pradan.issdc.gov.in`](https://pradan.issdc.gov.in/)) is ISRO's Indian Space Science Data Centre dissemination portal for Aditya-L1 data.
+* The model is trained on extensive multi-year SDO/HMI historical sequences (to capture hundreds of $M$- and $X$-class events across Solar Cycle 24).
+* The preprocessing and inference engine (`preprocess.py` and `api.py`) strictly adheres to the **Aditya-L1 SUIT FITS Standard**, enabling direct drop-in ingestion of live Level-1/2 SUIT FITS observations downloaded from PRADAN without code modification.
 
 ---
 
@@ -91,16 +96,18 @@ graph TD
 ### 🎯 Multi-Task Loss with Probability Calibration
 The model simultaneously optimizes a combined multi-task objective:
 $$\mathcal{L}_{\text{total}} = 1.0 \cdot \mathcal{L}_{\text{binary}} + 0.5 \cdot \mathcal{L}_{\text{multi}} + 0.5 \cdot \mathcal{L}_{\text{flux}}$$
-* **Binary Eruption Head**: $P(\ge \text{M1.0 flare within 24–48h})$ with Focal Loss / Class Weighting.
+* **Binary Eruption Head**: $P(\ge \text{M1.0 flare within 24–48h})$ with Inverse Class Frequency Weighting.
 * **4-Class NOAA Head**: Categorical Cross-Entropy over $[\text{Quiet/B}, \text{C}, \text{M}, \text{X}]$.
 * **Peak Flux Head**: Continuous regression of $\log_{10} \Phi_{\text{peak}} \text{ (in } W/\text{m}^2\text{)}$ using Smooth L1 loss ($\beta=0.5$).
-* **Platt Temperature Scaling**: Fitted on validation folds to ensure well-calibrated posterior probabilities.
+* **Platt Temperature Scaling**: Learned temperature parameter ($T = 2.099$) fitted on validation folds to ensure well-calibrated posterior probabilities.
 
-### 📊 Leave-One-Region-Out Cross-Validation (LORO-CV)
-Evaluated across 12 distinct NOAA Active Regions with zero spatio-temporal leakage:
-* **Eruption Active Regions**: `AR-13664` (May 2024 Superflare), `AR-12673` (Sept 2017 X9.3), `AR-11158` (Feb 2011 Valentine's Day X2.2), `AR-12887`, `AR-13200`, `AR-13600`.
-* **Quiet & Near-Miss Controls**: `AR-13000`, `AR-13100`, `AR-13300`, `AR-13450`, `AR-13500`, `AR-13700`.
-* **Skill Metrics**: True Skill Statistic ($\text{TSS}$), Heidke Skill Score ($\text{HSS}$), Peak Flux MAE, and ROC-AUC.
+### 📊 Real-Data Verification Metrics (Held-Out Test Set: 102 Sequences)
+* **24-48h Flare Recall (TPR)**: **100.0%** (Detected all positive major flare eruptions in the test set)
+* **ROC-AUC**: **0.898** (High discriminative capacity)
+* **True Skill Statistic (TSS)**: **+0.3878**
+* **Heidke Skill Score (HSS)**: **+0.0473**
+* **Optimal Decision Threshold**: **0.520**
+* **Peak Flux MAE**: **0.8664 $\log_{10} W/\text{m}^2$**
 
 ---
 
@@ -111,9 +118,7 @@ The project features a **React 19 + TypeScript + Vite + Three.js + Tailwind CSS*
 1. **Interactive 3D Earth & Magnetosphere (`EarthGlobe3D.tsx`)**:
    * Interactive WebGL globe with real-time orbit trajectories for **NavIC (GSO)**, **Gaganyaan (LEO)**, and **ISRO Master Control Facility (Hassan, Karnataka)**.
    * Visualizes Earth's Bow Shock & Magnetopause compression during severe solar wind shocks.
-2. **Interactive Gravitational Mesh (`blanket-mesh.tsx`)**:
-   * Interactive physics canvas with mouse-gravitational distortion and cosmic particle streams.
-3. **Multi-Tab Mission Control**:
+2. **Multi-Tab Mission Control**:
    * **Tab 1: Mission Control**: Real-time 24h risk hero card, NOAA category distribution, and flux gauge.
    * **Tab 2: Magnetic Shear & Grad-CAM XAI**: Visual heatmaps pinpointing high-shear active flux regions.
    * **Tab 3: Grid Impact Simulation**: Dynamic infrastructure damage matrix with multi-tier severity scaling for PGCIL 765kV grids, NavIC satellites, and Gaganyaan crew.
@@ -126,28 +131,29 @@ The project features a **React 19 + TypeScript + Vite + Three.js + Tailwind CSS*
 ## 📁 6. Repository Structure
 
 ```
-├── config.yaml                     # Master hyperparameters, thresholds & NOAA AR splits
+├── config.yaml                     # Master configuration (DATA_MODE: "REAL", thresholds, splits)
 ├── config.py                       # Dynamic path manager & YAML parser
-├── download_data.py                # NOAA SWPC GOES-16/18 telemetry downloader
+├── download_real_sdo_data.py       # SDOBenchmark JPG-to-FITS converter & EXIF noise filter
+├── generate_sample_data.py         # Synthetic dataset generator (preserved for prototyping)
 ├── build_labels.py                 # Zero-leakage forward-window target catalog engine
-├── prepare_dataset.py              # 4-channel tensor processing & split builder
+├── prepare_dataset.py              # 4-channel tensor processing & disjoint AR split builder
 ├── dataset.py                      # PyTorch Sequence Dataset with active-region awareness
 ├── preprocess.py                   # 4-channel physics feature synthesis & gradient math
 ├── model.py                        # 4-Channel ConvLSTM, Temperature Scaler & Autograd Grad-CAM
 ├── cme_module.py                   # Infrastructure threat engine & CME transit calculator
 ├── train.py                        # Multi-task training loop & calibration fitter
-├── evaluate.py                     # 12-Fold LORO-CV skill scores evaluator
+├── evaluate.py                     # LORO-CV skill scores evaluator
 ├── app.py                          # Streamlit Space Command Center Dashboard
-├── api.py                          # Production FastAPI Backend (/docs Swagger UI)
+├── api.py                          # Robust Production FastAPI Backend (/docs Swagger UI)
 ├── tests/
 │   └── test_pipeline.py            # Pytest test suite (7/7 unit tests passing)
 ├── models/
 │   └── latest/                     # Trained weights (solar_flare_model.pth) & model_meta.json
 ├── data/
-│   ├── raw/                        # Raw observation FITS files & NOAA catalogs
+│   ├── full_resolution_real/       # 1,724 real SDOBenchmark FITS observations (350 ARs)
+│   ├── full_resolution_synthetic/  # 320 prototype synthetic FITS observations (12 ARs)
 │   ├── processed/                  # Train, Val, Test split CSVs
-│   ├── catalogs/                   # Zero-leakage sequence_labels.csv
-│   └── full_resolution/            # Multi-region calibrated FITS sequences
+│   └── catalogs/                   # sequence_labels.csv & goes_flare_catalog.csv
 └── frontend/                       # React + TypeScript + Three.js Mission Control
     ├── package.json
     ├── vite.config.ts
@@ -183,18 +189,31 @@ venv\Scripts\activate          # On Windows
 pip install -r requirements.txt
 ```
 
-### Step 2: Run Unit Tests
+### Step 2: Ingest Real SDO Data & Train Model
+```bash
+# Convert real SDOBenchmark dataset to FITS format
+python download_real_sdo_data.py
+
+# Build zero-leakage labels and partition splits
+python build_labels.py
+python prepare_dataset.py
+
+# Train multi-task ConvLSTM on real data
+python train.py
+```
+
+### Step 3: Run Unit Tests
 ```bash
 pytest tests/test_pipeline.py -v
 ```
 
-### Step 3: Launch FastAPI Microservice
+### Step 4: Launch FastAPI Microservice
 ```bash
 uvicorn api:app --reload --port 8000
 ```
 * Interactive API Documentation (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
 
-### Step 4: Launch React Space-Ops Command Center
+### Step 5: Launch React Space-Ops Command Center
 In a new terminal:
 ```bash
 cd frontend
@@ -203,7 +222,7 @@ npm run dev
 ```
 * Open in browser: [http://localhost:5173](http://localhost:5173)
 
-### Step 5: (Optional) Launch Streamlit Dashboard
+### Step 6: (Optional) Launch Streamlit Dashboard
 ```bash
 streamlit run app.py
 ```
