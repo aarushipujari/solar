@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { ShieldAlert, Navigation, Users } from "lucide-react";
+import { ShieldAlert, Navigation, Users, Radio } from "lucide-react";
 
 interface EarthGlobe3DProps {
   isCritical?: boolean;
@@ -12,13 +12,46 @@ export const EarthGlobe3D = ({
   className = "",
 }: EarthGlobe3DProps) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [selectedOrbit, setSelectedOrbit] = useState<"all" | "navic" | "gaganyaan" | "shield">("all");
+  const [selectedOrbit, setSelectedOrbit] = useState<"all" | "isro" | "navic" | "gaganyaan" | "shield">("all");
   const [orbitStats, setOrbitStats] = useState({
     altitude: "36,000 km (GSO)",
     satCount: "7 Satellites Active",
     shieldStatus: isCritical ? "Compressed (6.2 Re Bow Shock)" : "Nominal (10.5 Re Bow Shock)",
     radiationDose: isCritical ? "142 mSv/hr (Elevated)" : "2.4 mSv/day (Safe)",
   });
+
+  const handleOrbitSelect = (orbit: "all" | "isro" | "navic" | "gaganyaan" | "shield") => {
+    setSelectedOrbit(orbit);
+    if (orbit === "isro") {
+      setOrbitStats({
+        altitude: "Ground Station (Hassan / Bengaluru)",
+        satCount: "Master Control Facility (MCF)",
+        shieldStatus: "Coordinates: 21°N, 78°E (India)",
+        radiationDose: "Active Telemetry Uplink (Aditya-L1 / NavIC)",
+      });
+    } else if (orbit === "navic") {
+      setOrbitStats({
+        altitude: "36,000 km (GSO Nodes)",
+        satCount: "7 Satellites (3 Geostationary, 4 Inclined)",
+        shieldStatus: isCritical ? "Ionospheric Delay High" : "Standard Ephemeris Margin",
+        radiationDose: isCritical ? "Payload Safeguard Armed" : "Nominal Telemetry",
+      });
+    } else if (orbit === "gaganyaan") {
+      setOrbitStats({
+        altitude: "400 km (Low Earth Orbit)",
+        satCount: "Gaganyaan Crew Module",
+        shieldStatus: isCritical ? "EVA Inhibit (S3 Proton Flux)" : "EVA Permitted (Nominal)",
+        radiationDose: isCritical ? "Storm Shelter Armed" : "Safe Baseline (2.4 mSv/day)",
+      });
+    } else {
+      setOrbitStats({
+        altitude: "Magnetosphere (6 - 10.5 Re)",
+        satCount: "Earth Magnetic Shield",
+        shieldStatus: isCritical ? "Compressed (6.2 Re Bow Shock)" : "Nominal (10.5 Re Bow Shock)",
+        radiationDose: isCritical ? "142 mSv/hr (Elevated)" : "2.4 mSv/day (Safe)",
+      });
+    }
+  };
 
   useEffect(() => {
     setOrbitStats((prev) => ({
@@ -38,7 +71,8 @@ export const EarthGlobe3D = ({
     // Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 2.2, 7.5);
+    camera.position.set(0, 0.15, 7.6);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(width, height);
@@ -46,10 +80,12 @@ export const EarthGlobe3D = ({
     currentMount.appendChild(renderer.domElement);
 
     const globeGroup = new THREE.Group();
+    globeGroup.position.set(0, 0.1, 0);
     scene.add(globeGroup);
 
-    // 1. Earth Core Sphere
-    const earthGeo = new THREE.SphereGeometry(2, 48, 48);
+    // 1. Earth Core Sphere (Scaled to fit perfectly centered in viewport)
+    const earthRadius = 1.6;
+    const earthGeo = new THREE.SphereGeometry(earthRadius, 48, 48);
     const earthMat = new THREE.MeshBasicMaterial({
       color: 0x06122c,
       wireframe: true,
@@ -60,7 +96,7 @@ export const EarthGlobe3D = ({
     globeGroup.add(earthMesh);
 
     // Solid inner core
-    const innerGeo = new THREE.SphereGeometry(1.97, 36, 36);
+    const innerGeo = new THREE.SphereGeometry(earthRadius * 0.985, 36, 36);
     const innerMat = new THREE.MeshBasicMaterial({ color: 0x020716 });
     const innerMesh = new THREE.Mesh(innerGeo, innerMat);
     globeGroup.add(innerMesh);
@@ -70,12 +106,12 @@ export const EarthGlobe3D = ({
     const gridMat = new THREE.LineBasicMaterial({
       color: gridColor,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.22,
     });
 
     for (let lat = -60; lat <= 60; lat += 30) {
-      const radius = 2.01 * Math.cos((lat * Math.PI) / 180);
-      const y = 2.01 * Math.sin((lat * Math.PI) / 180);
+      const radius = (earthRadius + 0.01) * Math.cos((lat * Math.PI) / 180);
+      const y = (earthRadius + 0.01) * Math.sin((lat * Math.PI) / 180);
       const circleGeo = new THREE.BufferGeometry();
       const pts: THREE.Vector3[] = [];
       for (let i = 0; i <= 64; i++) {
@@ -90,11 +126,12 @@ export const EarthGlobe3D = ({
     // 3. India Highlight Marker with Pulsing Ring
     const phi = (90 - 21) * (Math.PI / 180);
     const theta = (78 + 180) * (Math.PI / 180);
-    const pinX = -(2.06 * Math.sin(phi) * Math.cos(theta));
-    const pinZ = 2.06 * Math.sin(phi) * Math.sin(theta);
-    const pinY = 2.06 * Math.cos(phi);
+    const pinRadius = earthRadius + 0.05;
+    const pinX = -(pinRadius * Math.sin(phi) * Math.cos(theta));
+    const pinZ = pinRadius * Math.sin(phi) * Math.sin(theta);
+    const pinY = pinRadius * Math.cos(phi);
 
-    const pinGeo = new THREE.SphereGeometry(0.09, 16, 16);
+    const pinGeo = new THREE.SphereGeometry(0.08, 16, 16);
     const pinMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
     const pinMesh = new THREE.Mesh(pinGeo, pinMat);
     pinMesh.position.set(pinX, pinY, pinZ);
@@ -103,7 +140,7 @@ export const EarthGlobe3D = ({
     // 4. Magnetosphere Bow Shock & Magnetopause Lines
     const shieldRings: THREE.Mesh[] = [];
     for (let i = 0; i < 5; i++) {
-      const ringGeo = new THREE.TorusGeometry(2.7 + i * 0.35, 0.025, 16, 64);
+      const ringGeo = new THREE.TorusGeometry(2.1 + i * 0.25, 0.02, 16, 64);
       const ringMat = new THREE.MeshBasicMaterial({
         color: isCritical ? (i % 2 === 0 ? 0xff334b : 0xff9100) : 0x00e5ff,
         transparent: true,
@@ -121,7 +158,7 @@ export const EarthGlobe3D = ({
     const navicOrbits: THREE.Line[] = [];
     const navicSats: THREE.Mesh[] = [];
     const inclinations = [0.45, -0.45, 0.0];
-    const orbitRadius = 3.8;
+    const orbitRadius = 2.85;
 
     inclinations.forEach((inc) => {
       const orbitGeo = new THREE.BufferGeometry();
@@ -150,7 +187,7 @@ export const EarthGlobe3D = ({
 
       // Satellite Box Model
       const sat = new THREE.Mesh(
-        new THREE.BoxGeometry(0.14, 0.14, 0.14),
+        new THREE.BoxGeometry(0.12, 0.12, 0.12),
         new THREE.MeshBasicMaterial({ color: 0xffb300 })
       );
       globeGroup.add(sat);
@@ -160,7 +197,7 @@ export const EarthGlobe3D = ({
     // 6. Gaganyaan LEO Satellite
     const leoOrbitGeo = new THREE.BufferGeometry();
     const leoPts: THREE.Vector3[] = [];
-    const leoR = 2.4;
+    const leoR = 1.95;
     for (let i = 0; i <= 64; i++) {
       const a = (i / 64) * Math.PI * 2;
       leoPts.push(new THREE.Vector3(Math.cos(a) * leoR, Math.sin(a) * leoR * 0.6, Math.sin(a) * leoR));
@@ -173,7 +210,7 @@ export const EarthGlobe3D = ({
     globeGroup.add(leoLine);
 
     const leoSat = new THREE.Mesh(
-      new THREE.SphereGeometry(0.08, 16, 16),
+      new THREE.SphereGeometry(0.07, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0x00e676 })
     );
     globeGroup.add(leoSat);
@@ -283,17 +320,29 @@ export const EarthGlobe3D = ({
       {/* 3D Canvas Mounting Point */}
       <div
         ref={mountRef}
-        className="w-full h-[320px] md:h-[400px] cursor-grab active:cursor-grabbing select-none"
+        className="w-full h-[300px] sm:h-[340px] md:h-[380px] cursor-grab active:cursor-grabbing select-none flex items-center justify-center"
       />
 
       {/* Orbit Filter Chips & Live Telemetry Inspector */}
       <div className="w-full mt-2 space-y-2">
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
           <button
-            onClick={() => setSelectedOrbit("navic")}
+            onClick={() => handleOrbitSelect("isro")}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border transition-all cursor-pointer ${
+              selectedOrbit === "isro"
+                ? "bg-cyan-500/25 text-cyan-300 border-cyan-400 shadow-lg shadow-cyan-500/20 font-bold"
+                : "bg-space-900/80 text-slate-400 border-white/10 hover:text-white"
+            }`}
+          >
+            <Radio className="h-3 w-3 text-cyan-400 animate-pulse" />
+            <span>ISRO Ground Pin</span>
+          </button>
+
+          <button
+            onClick={() => handleOrbitSelect("navic")}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border transition-all cursor-pointer ${
               selectedOrbit === "navic"
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/20"
+                ? "bg-amber-500/25 text-amber-300 border-amber-400 shadow-lg shadow-amber-500/20 font-bold"
                 : "bg-space-900/80 text-slate-400 border-white/10 hover:text-white"
             }`}
           >
@@ -302,10 +351,10 @@ export const EarthGlobe3D = ({
           </button>
 
           <button
-            onClick={() => setSelectedOrbit("gaganyaan")}
+            onClick={() => handleOrbitSelect("gaganyaan")}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border transition-all cursor-pointer ${
               selectedOrbit === "gaganyaan"
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-lg shadow-emerald-500/20"
+                ? "bg-emerald-500/25 text-emerald-300 border-emerald-400 shadow-lg shadow-emerald-500/20 font-bold"
                 : "bg-space-900/80 text-slate-400 border-white/10 hover:text-white"
             }`}
           >
@@ -314,12 +363,12 @@ export const EarthGlobe3D = ({
           </button>
 
           <button
-            onClick={() => setSelectedOrbit("shield")}
+            onClick={() => handleOrbitSelect("shield")}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border transition-all cursor-pointer ${
               selectedOrbit === "shield"
                 ? isCritical
-                  ? "bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-lg shadow-rose-500/20"
-                  : "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+                  ? "bg-rose-500/25 text-rose-300 border-rose-400 shadow-lg shadow-rose-500/20 font-bold"
+                  : "bg-cyan-500/25 text-cyan-300 border-cyan-400"
                 : "bg-space-900/80 text-slate-400 border-white/10 hover:text-white"
             }`}
           >
@@ -329,14 +378,18 @@ export const EarthGlobe3D = ({
         </div>
 
         {/* Dynamic Telemetry Box */}
-        <div className="bg-space-950/80 border border-white/10 rounded-xl p-2.5 font-mono text-[10px] text-slate-300 grid grid-cols-2 gap-2 shadow-inner">
+        <div className="bg-space-950/85 border border-white/10 rounded-xl p-2.5 font-mono text-[10px] text-slate-300 grid grid-cols-2 gap-2 shadow-inner">
           <div>
-            <span className="text-slate-500 block">ORBITAL REGION</span>
+            <span className="text-slate-500 block">TARGET REGION / ASSET</span>
             <span className="text-white font-bold">{orbitStats.altitude}</span>
           </div>
           <div>
-            <span className="text-slate-500 block">SHIELD STATUS</span>
-            <span className={`font-bold ${isCritical ? "text-rose-400" : "text-cyan-300"}`}>
+            <span className="text-slate-500 block">ASSET TYPE / COUNT</span>
+            <span className="text-cyan-300 font-bold">{orbitStats.satCount}</span>
+          </div>
+          <div className="col-span-2 pt-1 border-t border-white/5 flex items-center justify-between">
+            <span className="text-slate-500">OPERATIONAL STATUS:</span>
+            <span className={`font-bold ${isCritical && selectedOrbit === "shield" ? "text-rose-400" : "text-emerald-400"}`}>
               {orbitStats.shieldStatus}
             </span>
           </div>

@@ -14,11 +14,33 @@ interface Point {
   originY: number;
   vx: number;
   vy: number;
+  z: number;
+  vz: number;
+}
+
+interface Stardust {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  alpha: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
+interface Shockwave {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  intensity: number;
 }
 
 export const BlanketMesh = ({
   className,
-  gridGap = 36,
+  gridGap = 32,
   isFlareActive = false,
 }: BlanketMeshProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,6 +58,21 @@ export const BlanketMesh = ({
     let points: Point[][] = [];
     let cols = Math.ceil(width / gridGap) + 1;
     let rows = Math.ceil(height / gridGap) + 1;
+
+    let particles: Stardust[] = [];
+    let shockwaves: Shockwave[] = [];
+
+    // Background cosmic stars
+    const stars: Array<{ x: number; y: number; r: number; alpha: number; speed: number }> = [];
+    for (let i = 0; i < 70; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.7 + 0.3,
+        speed: (Math.random() - 0.5) * 0.005,
+      });
+    }
 
     const initGrid = () => {
       width = canvas.width = window.innerWidth;
@@ -56,6 +93,8 @@ export const BlanketMesh = ({
             originY: y,
             vx: 0,
             vy: 0,
+            z: 0,
+            vz: 0,
           });
         }
         points.push(row);
@@ -64,78 +103,189 @@ export const BlanketMesh = ({
 
     initGrid();
 
-    // Mouse tracking for blanket drag
-    let mouse = { x: -1000, y: -1000, prevX: -1000, prevY: -1000, speedX: 0, speedY: 0 };
-    let timeoutId: number;
+    // Mouse tracking for gravitational sinkhole
+    const mouse = {
+      x: -1000,
+      y: -1000,
+      prevX: -1000,
+      prevY: -1000,
+      speedX: 0,
+      speedY: 0,
+    };
 
     const onMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
+      const currentX = e.clientX;
+      const currentY = e.clientY;
 
       mouse.speedX = currentX - (mouse.prevX === -1000 ? currentX : mouse.prevX);
       mouse.speedY = currentY - (mouse.prevY === -1000 ? currentY : mouse.prevY);
       mouse.prevX = mouse.x = currentX;
       mouse.prevY = mouse.y = currentY;
 
-      window.clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(() => {
-        mouse.speedX = 0;
-        mouse.speedY = 0;
-      }, 50);
+      // Spawn stardust sparks on mouse motion
+      const speed = Math.hypot(mouse.speedX, mouse.speedY);
+      if (speed > 1.5 && particles.length < 80) {
+        const pColors = isFlareActive
+          ? ["#ff334b", "#ff9100", "#ffea00", "#ff1744", "#ffffff"]
+          : ["#00e5ff", "#00b0ff", "#7c4dff", "#00e676", "#ffffff"];
+        for (let i = 0; i < Math.min(4, Math.floor(speed / 3) + 1); i++) {
+          particles.push({
+            x: currentX + (Math.random() - 0.5) * 16,
+            y: currentY + (Math.random() - 0.5) * 16,
+            vx: mouse.speedX * 0.15 + (Math.random() - 0.5) * 1.5,
+            vy: mouse.speedY * 0.15 + (Math.random() - 0.5) * 1.5,
+            radius: Math.random() * 2 + 0.8,
+            alpha: 1,
+            life: 0,
+            maxLife: Math.random() * 28 + 20,
+            color: pColors[Math.floor(Math.random() * pColors.length)],
+          });
+        }
+      }
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      shockwaves.push({
+        x: e.clientX,
+        y: e.clientY,
+        radius: 12,
+        maxRadius: 360,
+        intensity: 36,
+      });
     };
 
     window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mousedown", onMouseDown);
     window.addEventListener("resize", initGrid);
 
-    const spring = 0.045;
-    const damping = 0.88;
-    const influenceRadius = 160;
+    const sinkRadius = 180;
+    const maxDepth = isFlareActive ? 52 : 38;
+    const recoverySpeed = 0.22; // Split-second smooth return (no wavy ringing)
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Update Physics
+      // 1. Draw Space Background Nebula
+      const nebulaGrad = ctx.createRadialGradient(
+        width * 0.5,
+        height * 0.3,
+        50,
+        width * 0.5,
+        height * 0.5,
+        width * 0.75
+      );
+      nebulaGrad.addColorStop(0, isFlareActive ? "rgba(255, 51, 75, 0.07)" : "rgba(0, 229, 255, 0.06)");
+      nebulaGrad.addColorStop(0.5, "rgba(6, 9, 25, 0.35)");
+      nebulaGrad.addColorStop(1, "rgba(3, 7, 18, 0.95)");
+      ctx.fillStyle = nebulaGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Draw Twinkling Background Stars
+      stars.forEach((s) => {
+        s.alpha += s.speed;
+        if (s.alpha > 0.9 || s.alpha < 0.2) s.speed = -s.speed;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, s.alpha)})`;
+        ctx.fill();
+      });
+
+      // 3. Process Shockwaves
+      for (let sIdx = shockwaves.length - 1; sIdx >= 0; sIdx--) {
+        const sw = shockwaves[sIdx];
+        sw.radius += 10;
+        sw.intensity *= 0.92;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const p = points[r][c];
+            const dx = p.originX - sw.x;
+            const dy = p.originY - sw.y;
+            const dist = Math.hypot(dx, dy);
+            const ringDist = Math.abs(dist - sw.radius);
+
+            if (ringDist < 40 && dist > 0) {
+              const force = (1 - ringDist / 40) * sw.intensity;
+              p.x += (dx / dist) * force * 0.25;
+              p.y += (dy / dist) * force * 0.25;
+              p.z += force * 0.35;
+            }
+          }
+        }
+
+        if (sw.radius > sw.maxRadius || sw.intensity < 0.5) {
+          shockwaves.splice(sIdx, 1);
+        }
+      }
+
+      // 4. Update Crisp 3D Sink-In Physics with Split-Second Instant Flat Recovery (Zero Wavy Nature)
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const p = points[r][c];
 
-          // Cursor displacement (elastic blanket effect)
-          const dx = mouse.x - p.x;
-          const dy = mouse.y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dx = p.originX - mouse.x;
+          const dy = p.originY - mouse.y;
+          const dist = Math.hypot(dx, dy);
 
-          if (dist < influenceRadius && dist > 0) {
-            const force = (1 - dist / influenceRadius);
-            // Move along cursor motion + push slightly outward
-            const pushFactor = isFlareActive ? 18 : 12;
-            p.vx += (mouse.speedX * 0.4 + (dx / dist) * -1.5) * force * pushFactor * 0.05;
-            p.vy += (mouse.speedY * 0.4 + (dy / dist) * -1.5) * force * pushFactor * 0.05;
+          let targetX = p.originX;
+          let targetY = p.originY;
+          let targetZ = 0;
+
+          if (dist < sinkRadius && dist > 0) {
+            const factor = Math.pow(1 - dist / sinkRadius, 2.0);
+            targetZ = factor * maxDepth;
+            const inwardPull = factor * (isFlareActive ? 14 : 10);
+            targetX = p.originX - (dx / dist) * inwardPull;
+            targetY = p.originY - (dy / dist) * inwardPull;
           }
 
-          // Spring force back to rest position
-          const forceX = (p.originX - p.x) * spring;
-          const forceY = (p.originY - p.y) * spring;
-
-          p.vx += forceX;
-          p.vy += forceY;
-
-          // Damping
-          p.vx *= damping;
-          p.vy *= damping;
-
-          p.x += p.vx;
-          p.y += p.vy;
+          // Direct smooth critically damped snap back (returns flat in a split-second with zero waves)
+          p.x += (targetX - p.x) * recoverySpeed;
+          p.y += (targetY - p.y) * recoverySpeed;
+          p.z += (targetZ - p.z) * recoverySpeed;
         }
       }
 
-      // 2. Draw Horizontal Mesh Lines
-      const baseLineColor = isFlareActive
-        ? "rgba(255, 51, 75, 0.12)"
-        : "rgba(0, 229, 255, 0.12)";
+      // 5. Draw 3D Gravitational Well Depressed Shadow & Subtle Rim
+      if (mouse.x > -500) {
+        const sinkGrad = ctx.createRadialGradient(
+          mouse.x,
+          mouse.y,
+          0,
+          mouse.x,
+          mouse.y,
+          sinkRadius * 0.95
+        );
+        sinkGrad.addColorStop(0, isFlareActive ? "rgba(35, 3, 10, 0.45)" : "rgba(1, 6, 18, 0.5)");
+        sinkGrad.addColorStop(0.5, isFlareActive ? "rgba(255, 51, 75, 0.08)" : "rgba(0, 229, 255, 0.08)");
+        sinkGrad.addColorStop(1, "rgba(3, 7, 18, 0)");
 
-      ctx.lineWidth = 1;
+        ctx.fillStyle = sinkGrad;
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, sinkRadius * 0.95, 0, Math.PI * 2);
+        ctx.fill();
 
+        // 2 Delicate depth contour rings in the sinkhole
+        for (let i = 1; i <= 2; i++) {
+          const rRing = (sinkRadius / 2.8) * i;
+          ctx.beginPath();
+          ctx.arc(mouse.x, mouse.y, rRing, 0, Math.PI * 2);
+          ctx.strokeStyle = isFlareActive
+            ? `rgba(255, 145, 0, ${0.20 - i * 0.06})`
+            : `rgba(0, 229, 255, ${0.20 - i * 0.06})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+
+      // 6. Draw Mesh Lines with 3D Depth Curve
+      const defaultLineColor = isFlareActive
+        ? "rgba(255, 51, 75, 0.22)"
+        : "rgba(0, 229, 255, 0.22)";
+
+      ctx.lineWidth = 1.1;
+
+      // Horizontal lines
       for (let r = 0; r < rows; r++) {
         ctx.beginPath();
         ctx.moveTo(points[r][0].x, points[r][0].y);
@@ -143,11 +293,11 @@ export const BlanketMesh = ({
           const p = points[r][c];
           ctx.lineTo(p.x, p.y);
         }
-        ctx.strokeStyle = baseLineColor;
+        ctx.strokeStyle = defaultLineColor;
         ctx.stroke();
       }
 
-      // 3. Draw Vertical Mesh Lines & Glowing Nodes on active displacement
+      // Vertical lines
       for (let c = 0; c < cols; c++) {
         ctx.beginPath();
         ctx.moveTo(points[0][c].x, points[0][c].y);
@@ -155,30 +305,59 @@ export const BlanketMesh = ({
           const p = points[r][c];
           ctx.lineTo(p.x, p.y);
         }
-        ctx.strokeStyle = baseLineColor;
+        ctx.strokeStyle = defaultLineColor;
         ctx.stroke();
       }
 
-      // 4. Draw glowing nodes when displaced
-      for (let r = 0; r < rows; r += 2) {
-        for (let c = 0; c < cols; c += 2) {
+      // 7. Draw Deeply Sunk & Glowing Tension Nodes
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
           const p = points[r][c];
-          const disp = Math.hypot(p.x - p.originX, p.y - p.originY);
+          const disp = Math.hypot(p.x - p.originX, p.y - p.originY, p.z);
 
-          if (disp > 1.5) {
-            const glowAlpha = Math.min(0.9, disp / 12);
+          if (disp > 1.2) {
+            const glowAlpha = Math.min(1.0, disp / 7);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, Math.min(3.5, 1.2 + disp * 0.18), 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, Math.min(5.0, 1.2 + disp * 0.22), 0, Math.PI * 2);
             ctx.fillStyle = isFlareActive
               ? `rgba(255, 82, 82, ${glowAlpha})`
               : `rgba(0, 229, 255, ${glowAlpha})`;
-            ctx.shadowBlur = disp * 1.5;
+            ctx.shadowBlur = disp * 2;
             ctx.shadowColor = isFlareActive ? "#ff334b" : "#00e5ff";
             ctx.fill();
             ctx.shadowBlur = 0;
           }
         }
       }
+
+      // 8. Draw Cursor Particle Trail
+      for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
+        const pt = particles[pIdx];
+        pt.life++;
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vx *= 0.95;
+        pt.vy *= 0.95;
+        pt.alpha = 1 - pt.life / pt.maxLife;
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = pt.alpha * 0.9;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = pt.color;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+
+        if (pt.life >= pt.maxLife) {
+          particles.splice(pIdx, 1);
+        }
+      }
+
+      // Bleed mouse velocity
+      mouse.speedX *= 0.82;
+      mouse.speedY *= 0.82;
 
       animId = requestAnimationFrame(render);
     };
@@ -188,6 +367,7 @@ export const BlanketMesh = ({
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("resize", initGrid);
     };
   }, [gridGap, isFlareActive]);
@@ -196,7 +376,7 @@ export const BlanketMesh = ({
     <canvas
       ref={canvasRef}
       className={cn(
-        "fixed inset-0 pointer-events-none z-0 h-full w-full opacity-70 transition-opacity duration-700",
+        "fixed inset-0 pointer-events-none z-0 h-full w-full opacity-90 transition-opacity duration-700",
         className
       )}
     />

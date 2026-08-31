@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BackgroundBeams } from "./components/ui/background-beams";
 import { BlanketMesh } from "./components/ui/blanket-mesh";
 import { Spotlight } from "./components/ui/spotlight";
 import { Header } from "./components/Header";
@@ -68,9 +67,6 @@ export function App() {
     <div className="min-h-screen bg-space-950 text-slate-100 relative selection:bg-cyan-500 selection:text-black font-sans">
       {/* Interactive Elastic Blanket Mesh Physics */}
       <BlanketMesh isFlareActive={isFlareActive} />
-
-      {/* Background visual beams */}
-      <BackgroundBeams />
 
       {/* Radial Spotlight */}
       <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="rgba(0, 229, 255, 0.18)" />
