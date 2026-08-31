@@ -57,14 +57,20 @@ def prepare_spatiotemporal_dataset():
     val_df = labels_df[labels_df["active_region"].isin(VAL_ACTIVE_REGIONS)].copy()
     test_df = labels_df[labels_df["active_region"].isin(TEST_ACTIVE_REGIONS)].copy()
 
-    # Fallback if regions do not match
+    # Fallback if hardcoded config regions do not match (e.g. real SDOBenchmark dataset)
     if len(train_df) == 0:
-        n_total = len(labels_df)
-        n_train = int(n_total * 0.7)
-        n_val = int(n_total * 0.15)
-        train_df = labels_df.iloc[:n_train].copy()
-        val_df = labels_df.iloc[n_train: n_train + n_val].copy()
-        test_df = labels_df.iloc[n_train + n_val:].copy()
+        unique_ars = sorted(list(labels_df["active_region"].unique()))
+        n_ar = len(unique_ars)
+        n_train = int(n_ar * 0.70)
+        n_val = int(n_ar * 0.15)
+
+        train_ars = set(unique_ars[:n_train])
+        val_ars = set(unique_ars[n_train: n_train + n_val])
+        test_ars = set(unique_ars[n_train + n_val:])
+
+        train_df = labels_df[labels_df["active_region"].isin(train_ars)].copy()
+        val_df = labels_df[labels_df["active_region"].isin(val_ars)].copy()
+        test_df = labels_df[labels_df["active_region"].isin(test_ars)].copy()
 
     print(f"Active-Region-Aware Splits:")
     print(f"  • Train Set:      {len(train_df)} sequences | ARs: {list(train_df['active_region'].unique())}")

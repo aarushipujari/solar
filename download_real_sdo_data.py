@@ -60,6 +60,25 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("sdo_real_ingest")
 
 
+from PIL import Image
+
+def is_image_flagged_noisy(image_path: Path) -> bool:
+    """
+    Checks if an SDO JPG image is flagged as noisy (e.g. moon eclipse, recalibration)
+    in the EXIF ImageDescription tag (Tag ID: 270).
+    """
+    try:
+        with Image.open(image_path) as img:
+            exif = img.getexif()
+            if exif and 270 in exif:
+                desc = str(exif[270]).strip().lower()
+                if "flagged" in desc:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
 # -----------------------------------------------------------------------------
 # SDOBENCHMARK JPG TO FITS CONVERTER
 # -----------------------------------------------------------------------------
@@ -70,6 +89,7 @@ def convert_sdobenchmark_to_fits(
     """
     Decodes real SDOBenchmark preview JPG images from training/ and test/ directories
     and converts them into 2D float32 FITS files with standard headers.
+    Filters out any frames flagged as noisy in EXIF metadata.
     """
     logger.info("=" * 70)
     logger.info("CONVERTING REAL SDOBENCHMARK MAGNETOGRAM OBSERVATIONS TO FITS")
@@ -87,7 +107,10 @@ def convert_sdobenchmark_to_fits(
     total_samples_encountered = 0
     valid_samples_converted = 0
     skipped_samples_insufficient_frames = 0
+    skipped_samples_flagged_noisy = 0
     fits_files_written = 0
+    total_magnetograms_checked = 0
+    flagged_magnetograms_found = 0
 
     fits_records = []
     goes_records = []
@@ -119,12 +142,26 @@ def convert_sdobenchmark_to_fits(
                 skipped_samples_insufficient_frames += 1
                 continue
 
-            mag_files = sorted(list(sample_path.glob("*__magnetogram.jpg")))
+            all_mag_files = sorted(list(sample_path.glob("*__magnetogram.jpg")))
 
-            if len(mag_files) < SEQ_LENGTH:
-                skipped_samples_insufficient_frames += 1
+            # Check EXIF noise flag on all magnetogram frames
+            clean_mag_files = []
+            for mf in all_mag_files:
+                total_magnetograms_checked += 1
+                if is_image_flagged_noisy(mf):
+                    flagged_magnetograms_found += 1
+                    logger.warning(f"[EXIF FLAGGED NOISY] Skipping frame: {mf}")
+                else:
+                    clean_mag_files.append(mf)
+
+            if len(clean_mag_files) < SEQ_LENGTH:
+                if len(all_mag_files) >= SEQ_LENGTH and len(clean_mag_files) < SEQ_LENGTH:
+                    skipped_samples_flagged_noisy += 1
+                else:
+                    skipped_samples_insufficient_frames += 1
                 continue
 
+            mag_files = clean_mag_files[:SEQ_LENGTH]
             valid_samples_converted += 1
             dts = []
 
@@ -218,6 +255,9 @@ def convert_sdobenchmark_to_fits(
         "total_samples_encountered": total_samples_encountered,
         "valid_samples_converted (>=4 frames)": valid_samples_converted,
         "skipped_samples (<4 frames)": skipped_samples_insufficient_frames,
+        "skipped_samples_flagged_noisy": skipped_samples_flagged_noisy,
+        "total_magnetograms_checked": total_magnetograms_checked,
+        "flagged_magnetograms_found": flagged_magnetograms_found,
         "total_fits_files_written": fits_files_written,
         "unique_active_regions": df_fits["noaa_ar"].nunique() if not df_fits.empty else 0,
         "catalog_events_registered": len(df_goes)
