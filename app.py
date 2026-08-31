@@ -333,7 +333,7 @@ gradcam_engine = SpatioTemporalGradCAM(model)
 # -----------------------------------------------------------------------------
 # HELPER: LOAD 4-CHANNEL MULTI-SPECTRAL SEQUENCE
 # -----------------------------------------------------------------------------
-def load_observation_sequence(fits_file_list):
+def load_observation_sequence(fits_file_list, default_ar="AR-13664"):
     raw_images = []
     full_disks = []
     patches = []
@@ -355,7 +355,7 @@ def load_observation_sequence(fits_file_list):
             "instrume": "SUIT",
             "wavelnth": "279.6 nm",
             "date_obs": "2026-08-28T05:21:43",
-            "noaa_ar": "AR-13664"
+            "noaa_ar": default_ar
         }
         try:
             with fits.open(fpath) as hdul:
@@ -364,7 +364,7 @@ def load_observation_sequence(fits_file_list):
                 meta["telescop"] = h.get("TELESCOP", meta["telescop"])
                 meta["instrume"] = h.get("INSTRUME", meta["instrume"])
                 meta["wavelnth"] = h.get("WAVELNTH", meta["wavelnth"])
-                meta["noaa_ar"] = h.get("NOAA_AR", meta["noaa_ar"])
+                meta["noaa_ar"] = h.get("NOAA_AR", default_ar)
         except Exception:
             pass
 
@@ -388,35 +388,39 @@ st.markdown(f"""
 <div class="isro-header">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
         <div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <span class="badge-cyan">🇮🇳 ISRO ADITYA-L1 SPACE WEATHER OPS</span>
-                <span class="badge-cyan">SMART INDIA HACKATHON 2026</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge-amber">ISRO ADITYA-L1 MISSION</span>
+                <span style="font-size: 0.8rem; color: #7f93ad;" class="font-mono">SUIT PAYLOAD (279.6 nm)</span>
             </div>
-            <h1 style="margin: 0 0 4px 0; font-size: 1.85rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">
+            <h1 style="margin: 4px 0 0 0; font-size: 1.6rem; font-weight: 800; color: #ffffff;">
                 ☀️ Aditya-L1 Solar Flare & Space Weather Warning System
             </h1>
-            <p style="margin: 0; font-size: 0.88rem; color: #9bb0c9;">
-                Spatio-Temporal Deep Learning Forecasting (24–48h) for Critical Space & Power Infrastructure
+            <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #00e5ff;" class="font-mono">
+                Real-Time Spatio-Temporal Deep Learning Forecasting Pipeline (SIH 2026)
             </p>
         </div>
-        <div style="text-align: right; background: rgba(6, 12, 28, 0.75); padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(0, 229, 255, 0.25);">
-            <div style="font-size: 0.70rem; font-weight: 600; color: #7f93ad; letter-spacing: 0.05em; text-transform: uppercase;">ORBITAL TRAJECTORY</div>
-            <div class="font-mono text-cyan" style="font-size: 0.95rem; font-weight: 700;">Sun-Earth L1 Halo Orbit</div>
-            <div style="font-size: 0.72rem; color: #00e676; margin-top: 2px;">● Downlink: <b>NOMINAL (ISSDC Bylalu)</b></div>
+        <div style="text-align: right;" class="font-mono">
+            <div style="font-size: 0.8rem; color: #7f93ad;">PRIMARY MISSION CLOCKS</div>
+            <div style="font-size: 1rem; font-weight: 700; color: #00e5ff;">{utc_now.strftime('%Y-%m-%d %H:%M:%S')} <span style="font-size: 0.75rem; color: #7f93ad;">UTC</span></div>
+            <div style="font-size: 0.8rem; color: #a4b3c6;">{ist_now.strftime('%H:%M:%S')} <span style="font-size: 0.7rem; color: #7f93ad;">IST</span></div>
         </div>
     </div>
 </div>
+""", unsafe_allow_html=True)
 
-<div class="space-card" style="border-left: 4px solid #00e5ff;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-        <span class="text-cyan" style="font-weight: 700; font-size: 0.92rem; letter-spacing: -0.01em;">🎯 SIH Mission Objective & Data Architecture</span>
-        <span class="badge-cyan">Transforming Reactive Mitigation into Proactive Defence</span>
+
+# -----------------------------------------------------------------------------
+# MOTIVATION CALLOUT
+# -----------------------------------------------------------------------------
+st.markdown("""
+<div class="motivation-box">
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <span style="font-size: 1.5rem;">🛡️</span>
+        <div>
+            <b>Operational National Defense Mission:</b> Solar flares and coronal mass ejections (CMEs) inject billions of tons of magnetized plasma toward Earth, threatening high-voltage power networks (<b>PGCIL</b>), navigation satellites (<b>NavIC</b>), and human spaceflight (<b>Gaganyaan</b>).
+        </div>
     </div>
-    <p style="margin: 0 0 10px 0; font-size: 0.86rem; line-height: 1.55; color: #cdd9e5;">
-        To protect critical satellite communication, global navigation networks (<b>NavIC / GPS</b>), and power infrastructure (<b>PGCIL</b>) from destructive geomagnetic storms and CMEs, our project leverages 4-channel spatio-temporal deep learning (<b>CNN + ConvLSTM</b>) trained on a physics-informed dataset built in the <b>Aditya-L1 SUIT FITS format</b>, modeled on historically significant NOAA active regions (<b>AR-13664, AR-12673, AR-11158</b>) — with a real PRADAN ingestion pipeline ready pending ISSDC data access approval, providing predictive forecasts <b>24 to 48 hours prior to Earth impact</b>.
-    </p>
-    <div style="display: flex; gap: 20px; font-size: 0.78rem; color: #8ba2be; flex-wrap: wrap; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.06);">
-        <div>⚠️ <b>The Threat:</b> Geomagnetic storms & CMEs disrupt GPS/NavIC synchronization and induce destructive GIC currents in 765kV transformers.</div>
+    <div style="margin-top: 8px; font-size: 0.85rem; color: #9bb0c9;">
         <div>🚀 <b>The AI Solution:</b> Spatio-temporal 4-channel forecasting with authentic autograd Grad-CAM model attribution.</div>
     </div>
 </div>
@@ -430,10 +434,10 @@ st.sidebar.markdown("### 🕹️ Observational Data Source")
 
 scenarios_root = BASE_DIR / "scenarios"
 scenario_options = {
-    "AR-13664 Impending X-Class Superflare [Demo Preset]": {"dir": scenarios_root / "AR3664_Impending_X_Flare", "mode": "DEMO"},
-    "AR-11158 M-Class Eruptive Region [Demo Preset]": {"dir": scenarios_root / "AR3685_M_Class_Eruption", "mode": "DEMO"},
-    "AR-13100 Quiet Sun Baseline [Demo Preset]": {"dir": scenarios_root / "AR3670_Quiet_Sun", "mode": "DEMO"},
-    "NOAA GOES & SDO Benchmark Feed (data/full_resolution)": {"dir": DATA_DIR, "mode": "REAL"},
+    "AR-13664 Impending X-Class Superflare [Demo Preset]": {"dir": scenarios_root / "AR3664_Impending_X_Flare", "mode": "DEMO", "ar": "AR-13664"},
+    "AR-12673 Monster X9.3 Eruptive Region [Demo Preset]": {"dir": scenarios_root / "AR3685_M_Class_Eruption", "mode": "DEMO", "ar": "AR-12673"},
+    "AR-13100 Quiet Sun Baseline [Demo Preset]": {"dir": scenarios_root / "AR3670_Quiet_Sun", "mode": "DEMO", "ar": "AR-13100"},
+    "SDOBenchmark & SDO/HMI Real Dataset (1,724 Real FITS)": {"dir": DATA_DIR, "mode": "REAL", "ar": "AR-13664"},
 }
 
 selected_scenario_name = st.sidebar.selectbox(
@@ -493,7 +497,9 @@ fits_to_load = [active_folder / fn for fn in selected_fnames[:SEQ_LENGTH]]
 if len(fits_to_load) < SEQ_LENGTH:
     fits_to_load = available_fits[:SEQ_LENGTH]
 
-raw_imgs, full_disks, patches, seq_tensor, headers = load_observation_sequence(fits_to_load)
+raw_imgs, full_disks, patches, seq_tensor, headers = load_observation_sequence(
+    fits_to_load, default_ar=selected_config.get("ar", "AR-13664")
+)
 latest_patch = patches[-1]
 
 # Run Multi-Task Model Inference
